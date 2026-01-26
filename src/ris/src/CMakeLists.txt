@@ -1,0 +1,5 @@
+add_subdirectory(hello_world)
+add_subdirectory(hello_server)
+add_subdirectory(hello_client)
+add_subdirectory(hello_publisher)
+add_subdirectory(hello_subscriber)

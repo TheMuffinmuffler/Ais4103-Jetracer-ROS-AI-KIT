@@ -1,0 +1,12 @@
+\subsubsection usage Usage
+\verbatim
+<node name="jetracer" pkg="jetracer" type="jetracer">
+  <param name="Hmin" type="int" value="100" />
+  <param name="Hmax" type="int" value="130" />
+  <param name="Smin" type="int" value="100" />
+  <param name="Smax" type="int" value="255" />
+  <param name="Vmin" type="int" value="100" />
+  <param name="Vmax" type="int" value="255" />
+</node>
+\endverbatim
+

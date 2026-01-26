@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<package format="2">
+    <name>ris_msgs</name>
+    <version>0.0.1</version>
+    <description>
+        Template project for messages and services for AIS4104 Robotics and Intelligent Systems with Project.
+    </description>
+
+    <author email="aleksander.skrede@ntnu.com">Aleksander Skrede</author>
+    <maintainer email="aleksander.skrede@ntnu.com">Aleksander Skrede</maintainer>
+
+    <license>BSD</license>
+
+    <buildtool_depend>catkin</buildtool_depend>
+
+    <build_depend>std_msgs</build_depend>
+    <build_depend>message_generation</build_depend>
+
+    <exec_depend>std_msgs</exec_depend>
+    <exec_depend>message_runtime</exec_depend>
+</package>
