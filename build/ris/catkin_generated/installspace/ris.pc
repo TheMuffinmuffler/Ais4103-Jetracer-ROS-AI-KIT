@@ -1,4 +1,4 @@
-prefix=/home/jetson/catkin_ws/install
+prefix=//home/jetson/catkin_ws/install
 
 Name: ris
 Description: Description of ris

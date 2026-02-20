@@ -1,8 +1,8 @@
-# Install script for directory: /home/jetson/catkin_ws/src/jetracer_ros
+# Install script for directory: //home/jetson/catkin_ws/src/jetracer_ros
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
-  set(CMAKE_INSTALL_PREFIX "/home/jetson/catkin_ws/install")
+  set(CMAKE_INSTALL_PREFIX "//home/jetson/catkin_ws/install")
 endif()
 string(REGEX REPLACE "/$" "" CMAKE_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}")
 
@@ -38,23 +38,23 @@ if(NOT DEFINED CMAKE_CROSSCOMPILING)
 endif()
 
 if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_COMPONENT)
-  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/include/jetracer" TYPE FILE FILES "/home/jetson/catkin_ws/devel/include/jetracer/colorConfig.h")
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/include/jetracer" TYPE FILE FILES "//home/jetson/catkin_ws/devel/include/jetracer/colorConfig.h")
 endif()
 
 if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_COMPONENT)
-  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/include/jetracer" TYPE FILE FILES "/home/jetson/catkin_ws/devel/include/jetracer/LineFollowConfig.h")
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/include/jetracer" TYPE FILE FILES "//home/jetson/catkin_ws/devel/include/jetracer/LineFollowConfig.h")
 endif()
 
 if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_COMPONENT)
-  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/python2.7/dist-packages/jetracer" TYPE FILE FILES "/home/jetson/catkin_ws/devel/lib/python2.7/dist-packages/jetracer/__init__.py")
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/python2.7/dist-packages/jetracer" TYPE FILE FILES "//home/jetson/catkin_ws/devel/lib/python2.7/dist-packages/jetracer/__init__.py")
 endif()
 
 if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_COMPONENT)
-  execute_process(COMMAND "/usr/bin/python2" -m compileall "/home/jetson/catkin_ws/devel/lib/python2.7/dist-packages/jetracer/cfg")
+  execute_process(COMMAND "/usr/bin/python2" -m compileall "//home/jetson/catkin_ws/devel/lib/python2.7/dist-packages/jetracer/cfg")
 endif()
 
 if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_COMPONENT)
-  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/python2.7/dist-packages/jetracer" TYPE DIRECTORY FILES "/home/jetson/catkin_ws/devel/lib/python2.7/dist-packages/jetracer/cfg")
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/python2.7/dist-packages/jetracer" TYPE DIRECTORY FILES "//home/jetson/catkin_ws/devel/lib/python2.7/dist-packages/jetracer/cfg")
 endif()
 
 if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_COMPONENT)
@@ -69,6 +69,6 @@ if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_
 endif()
 
 if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_COMPONENT)
-  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/share/jetracer" TYPE FILE FILES "/home/jetson/catkin_ws/src/jetracer_ros/package.xml")
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/share/jetracer" TYPE FILE FILES "//home/jetson/catkin_ws/src/jetracer_ros/package.xml")
 endif()
 

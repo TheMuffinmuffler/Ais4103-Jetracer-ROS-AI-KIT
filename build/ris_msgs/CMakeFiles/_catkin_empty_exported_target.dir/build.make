@@ -46,7 +46,7 @@ RM = /usr/bin/cmake -E remove -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /home/jetson/catkin_ws/src
+CMAKE_SOURCE_DIR = //home/jetson/catkin_ws/src
 
 # The top-level build directory on which CMake was run.
 CMAKE_BINARY_DIR = /home/jetson/catkin_ws/build
@@ -70,6 +70,6 @@ ris_msgs/CMakeFiles/_catkin_empty_exported_target.dir/clean:
 .PHONY : ris_msgs/CMakeFiles/_catkin_empty_exported_target.dir/clean
 
 ris_msgs/CMakeFiles/_catkin_empty_exported_target.dir/depend:
-	cd /home/jetson/catkin_ws/build && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /home/jetson/catkin_ws/src /home/jetson/catkin_ws/src/ris_msgs /home/jetson/catkin_ws/build /home/jetson/catkin_ws/build/ris_msgs /home/jetson/catkin_ws/build/ris_msgs/CMakeFiles/_catkin_empty_exported_target.dir/DependInfo.cmake --color=$(COLOR)
+	cd /home/jetson/catkin_ws/build && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" //home/jetson/catkin_ws/src //home/jetson/catkin_ws/src/ris_msgs /home/jetson/catkin_ws/build /home/jetson/catkin_ws/build/ris_msgs /home/jetson/catkin_ws/build/ris_msgs/CMakeFiles/_catkin_empty_exported_target.dir/DependInfo.cmake --color=$(COLOR)
 .PHONY : ris_msgs/CMakeFiles/_catkin_empty_exported_target.dir/depend
 

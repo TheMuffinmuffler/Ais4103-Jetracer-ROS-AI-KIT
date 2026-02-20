@@ -1,4 +1,4 @@
-prefix=/home/jetson/catkin_ws/install
+prefix=//home/jetson/catkin_ws/install
 
 Name: ris_msgs
 Description: Description of ris_msgs

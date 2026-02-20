@@ -4,5 +4,5 @@ PROJECT_PKG_CONFIG_INCLUDE_DIRS = "".split(';') if "" != "" else []
 PROJECT_CATKIN_DEPENDS = "roscpp;ris_msgs;std_msgs".replace(';', ' ')
 PKG_CONFIG_LIBRARIES_WITH_PREFIX = "".split(';') if "" != "" else []
 PROJECT_NAME = "ris"
-PROJECT_SPACE_DIR = "/home/jetson/catkin_ws/devel"
+PROJECT_SPACE_DIR = "//home/jetson/catkin_ws/devel"
 PROJECT_VERSION = "0.0.1"

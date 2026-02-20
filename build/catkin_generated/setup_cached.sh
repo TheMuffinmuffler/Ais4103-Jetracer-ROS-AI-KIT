@@ -8,3 +8,4 @@
 
 # modified environment variables
 export PWD='/home/jetson/catkin_ws/build'
+export ROS_PACKAGE_PATH='/home/jetson/catkin_ws/src://home/jetson/catkin_ws/src:/home/jetson/catkin_ws/src://home/jetson/catkin_ws/src:/opt/ros/melodic/share'

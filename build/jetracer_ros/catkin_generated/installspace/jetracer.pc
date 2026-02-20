@@ -1,4 +1,4 @@
-prefix=/home/jetson/catkin_ws/install
+prefix=//home/jetson/catkin_ws/install
 
 Name: jetracer
 Description: Description of jetracer
