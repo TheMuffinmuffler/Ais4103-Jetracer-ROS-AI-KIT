@@ -43,7 +43,7 @@ RM = /usr/bin/cmake -E remove -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = //home/jetson/catkin_ws/src
+CMAKE_SOURCE_DIR = /home/jetson/catkin_ws/src
 
 # The top-level build directory on which CMake was run.
 CMAKE_BINARY_DIR = /home/jetson/catkin_ws/build
@@ -53,59 +53,59 @@ CMAKE_BINARY_DIR = /home/jetson/catkin_ws/build
 # Include the progress variables for this target.
 include jetracer_ros/CMakeFiles/jetracer_gencfg.dir/progress.make
 
-jetracer_ros/CMakeFiles/jetracer_gencfg: //home/jetson/catkin_ws/devel/include/jetracer/colorConfig.h
-jetracer_ros/CMakeFiles/jetracer_gencfg: //home/jetson/catkin_ws/devel/lib/python2.7/dist-packages/jetracer/cfg/colorConfig.py
-jetracer_ros/CMakeFiles/jetracer_gencfg: //home/jetson/catkin_ws/devel/include/jetracer/LineFollowConfig.h
-jetracer_ros/CMakeFiles/jetracer_gencfg: //home/jetson/catkin_ws/devel/lib/python2.7/dist-packages/jetracer/cfg/LineFollowConfig.py
+jetracer_ros/CMakeFiles/jetracer_gencfg: /home/jetson/catkin_ws/devel/include/jetracer/colorConfig.h
+jetracer_ros/CMakeFiles/jetracer_gencfg: /home/jetson/catkin_ws/devel/lib/python2.7/dist-packages/jetracer/cfg/colorConfig.py
+jetracer_ros/CMakeFiles/jetracer_gencfg: /home/jetson/catkin_ws/devel/include/jetracer/LineFollowConfig.h
+jetracer_ros/CMakeFiles/jetracer_gencfg: /home/jetson/catkin_ws/devel/lib/python2.7/dist-packages/jetracer/cfg/LineFollowConfig.py
 
 
-//home/jetson/catkin_ws/devel/include/jetracer/colorConfig.h: //home/jetson/catkin_ws/src/jetracer_ros/cfg/color.cfg
-//home/jetson/catkin_ws/devel/include/jetracer/colorConfig.h: /opt/ros/melodic/share/dynamic_reconfigure/templates/ConfigType.py.template
-//home/jetson/catkin_ws/devel/include/jetracer/colorConfig.h: /opt/ros/melodic/share/dynamic_reconfigure/templates/ConfigType.h.template
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --blue --bold --progress-dir=/home/jetson/catkin_ws/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Generating dynamic reconfigure files from cfg/color.cfg: //home/jetson/catkin_ws/devel/include/jetracer/colorConfig.h //home/jetson/catkin_ws/devel/lib/python2.7/dist-packages/jetracer/cfg/colorConfig.py"
-	cd /home/jetson/catkin_ws/build/jetracer_ros && ../catkin_generated/env_cached.sh /home/jetson/catkin_ws/build/jetracer_ros/setup_custom_pythonpath.sh //home/jetson/catkin_ws/src/jetracer_ros/cfg/color.cfg /opt/ros/melodic/share/dynamic_reconfigure/cmake/.. //home/jetson/catkin_ws/devel/share/jetracer //home/jetson/catkin_ws/devel/include/jetracer //home/jetson/catkin_ws/devel/lib/python2.7/dist-packages/jetracer
+/home/jetson/catkin_ws/devel/include/jetracer/colorConfig.h: /home/jetson/catkin_ws/src/jetracer_ros/cfg/color.cfg
+/home/jetson/catkin_ws/devel/include/jetracer/colorConfig.h: /opt/ros/melodic/share/dynamic_reconfigure/templates/ConfigType.py.template
+/home/jetson/catkin_ws/devel/include/jetracer/colorConfig.h: /opt/ros/melodic/share/dynamic_reconfigure/templates/ConfigType.h.template
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --blue --bold --progress-dir=/home/jetson/catkin_ws/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Generating dynamic reconfigure files from cfg/color.cfg: /home/jetson/catkin_ws/devel/include/jetracer/colorConfig.h /home/jetson/catkin_ws/devel/lib/python2.7/dist-packages/jetracer/cfg/colorConfig.py"
+	cd /home/jetson/catkin_ws/build/jetracer_ros && ../catkin_generated/env_cached.sh /home/jetson/catkin_ws/build/jetracer_ros/setup_custom_pythonpath.sh /home/jetson/catkin_ws/src/jetracer_ros/cfg/color.cfg /opt/ros/melodic/share/dynamic_reconfigure/cmake/.. /home/jetson/catkin_ws/devel/share/jetracer /home/jetson/catkin_ws/devel/include/jetracer /home/jetson/catkin_ws/devel/lib/python2.7/dist-packages/jetracer
 
-//home/jetson/catkin_ws/devel/share/jetracer/docs/colorConfig.dox: //home/jetson/catkin_ws/devel/include/jetracer/colorConfig.h
-	@$(CMAKE_COMMAND) -E touch_nocreate //home/jetson/catkin_ws/devel/share/jetracer/docs/colorConfig.dox
+/home/jetson/catkin_ws/devel/share/jetracer/docs/colorConfig.dox: /home/jetson/catkin_ws/devel/include/jetracer/colorConfig.h
+	@$(CMAKE_COMMAND) -E touch_nocreate /home/jetson/catkin_ws/devel/share/jetracer/docs/colorConfig.dox
 
-//home/jetson/catkin_ws/devel/share/jetracer/docs/colorConfig-usage.dox: //home/jetson/catkin_ws/devel/include/jetracer/colorConfig.h
-	@$(CMAKE_COMMAND) -E touch_nocreate //home/jetson/catkin_ws/devel/share/jetracer/docs/colorConfig-usage.dox
+/home/jetson/catkin_ws/devel/share/jetracer/docs/colorConfig-usage.dox: /home/jetson/catkin_ws/devel/include/jetracer/colorConfig.h
+	@$(CMAKE_COMMAND) -E touch_nocreate /home/jetson/catkin_ws/devel/share/jetracer/docs/colorConfig-usage.dox
 
-//home/jetson/catkin_ws/devel/lib/python2.7/dist-packages/jetracer/cfg/colorConfig.py: //home/jetson/catkin_ws/devel/include/jetracer/colorConfig.h
-	@$(CMAKE_COMMAND) -E touch_nocreate //home/jetson/catkin_ws/devel/lib/python2.7/dist-packages/jetracer/cfg/colorConfig.py
+/home/jetson/catkin_ws/devel/lib/python2.7/dist-packages/jetracer/cfg/colorConfig.py: /home/jetson/catkin_ws/devel/include/jetracer/colorConfig.h
+	@$(CMAKE_COMMAND) -E touch_nocreate /home/jetson/catkin_ws/devel/lib/python2.7/dist-packages/jetracer/cfg/colorConfig.py
 
-//home/jetson/catkin_ws/devel/share/jetracer/docs/colorConfig.wikidoc: //home/jetson/catkin_ws/devel/include/jetracer/colorConfig.h
-	@$(CMAKE_COMMAND) -E touch_nocreate //home/jetson/catkin_ws/devel/share/jetracer/docs/colorConfig.wikidoc
+/home/jetson/catkin_ws/devel/share/jetracer/docs/colorConfig.wikidoc: /home/jetson/catkin_ws/devel/include/jetracer/colorConfig.h
+	@$(CMAKE_COMMAND) -E touch_nocreate /home/jetson/catkin_ws/devel/share/jetracer/docs/colorConfig.wikidoc
 
-//home/jetson/catkin_ws/devel/include/jetracer/LineFollowConfig.h: //home/jetson/catkin_ws/src/jetracer_ros/cfg/LineFollow.cfg
-//home/jetson/catkin_ws/devel/include/jetracer/LineFollowConfig.h: /opt/ros/melodic/share/dynamic_reconfigure/templates/ConfigType.py.template
-//home/jetson/catkin_ws/devel/include/jetracer/LineFollowConfig.h: /opt/ros/melodic/share/dynamic_reconfigure/templates/ConfigType.h.template
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --blue --bold --progress-dir=/home/jetson/catkin_ws/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Generating dynamic reconfigure files from cfg/LineFollow.cfg: //home/jetson/catkin_ws/devel/include/jetracer/LineFollowConfig.h //home/jetson/catkin_ws/devel/lib/python2.7/dist-packages/jetracer/cfg/LineFollowConfig.py"
-	cd /home/jetson/catkin_ws/build/jetracer_ros && ../catkin_generated/env_cached.sh /home/jetson/catkin_ws/build/jetracer_ros/setup_custom_pythonpath.sh //home/jetson/catkin_ws/src/jetracer_ros/cfg/LineFollow.cfg /opt/ros/melodic/share/dynamic_reconfigure/cmake/.. //home/jetson/catkin_ws/devel/share/jetracer //home/jetson/catkin_ws/devel/include/jetracer //home/jetson/catkin_ws/devel/lib/python2.7/dist-packages/jetracer
+/home/jetson/catkin_ws/devel/include/jetracer/LineFollowConfig.h: /home/jetson/catkin_ws/src/jetracer_ros/cfg/LineFollow.cfg
+/home/jetson/catkin_ws/devel/include/jetracer/LineFollowConfig.h: /opt/ros/melodic/share/dynamic_reconfigure/templates/ConfigType.py.template
+/home/jetson/catkin_ws/devel/include/jetracer/LineFollowConfig.h: /opt/ros/melodic/share/dynamic_reconfigure/templates/ConfigType.h.template
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --blue --bold --progress-dir=/home/jetson/catkin_ws/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Generating dynamic reconfigure files from cfg/LineFollow.cfg: /home/jetson/catkin_ws/devel/include/jetracer/LineFollowConfig.h /home/jetson/catkin_ws/devel/lib/python2.7/dist-packages/jetracer/cfg/LineFollowConfig.py"
+	cd /home/jetson/catkin_ws/build/jetracer_ros && ../catkin_generated/env_cached.sh /home/jetson/catkin_ws/build/jetracer_ros/setup_custom_pythonpath.sh /home/jetson/catkin_ws/src/jetracer_ros/cfg/LineFollow.cfg /opt/ros/melodic/share/dynamic_reconfigure/cmake/.. /home/jetson/catkin_ws/devel/share/jetracer /home/jetson/catkin_ws/devel/include/jetracer /home/jetson/catkin_ws/devel/lib/python2.7/dist-packages/jetracer
 
-//home/jetson/catkin_ws/devel/share/jetracer/docs/LineFollowConfig.dox: //home/jetson/catkin_ws/devel/include/jetracer/LineFollowConfig.h
-	@$(CMAKE_COMMAND) -E touch_nocreate //home/jetson/catkin_ws/devel/share/jetracer/docs/LineFollowConfig.dox
+/home/jetson/catkin_ws/devel/share/jetracer/docs/LineFollowConfig.dox: /home/jetson/catkin_ws/devel/include/jetracer/LineFollowConfig.h
+	@$(CMAKE_COMMAND) -E touch_nocreate /home/jetson/catkin_ws/devel/share/jetracer/docs/LineFollowConfig.dox
 
-//home/jetson/catkin_ws/devel/share/jetracer/docs/LineFollowConfig-usage.dox: //home/jetson/catkin_ws/devel/include/jetracer/LineFollowConfig.h
-	@$(CMAKE_COMMAND) -E touch_nocreate //home/jetson/catkin_ws/devel/share/jetracer/docs/LineFollowConfig-usage.dox
+/home/jetson/catkin_ws/devel/share/jetracer/docs/LineFollowConfig-usage.dox: /home/jetson/catkin_ws/devel/include/jetracer/LineFollowConfig.h
+	@$(CMAKE_COMMAND) -E touch_nocreate /home/jetson/catkin_ws/devel/share/jetracer/docs/LineFollowConfig-usage.dox
 
-//home/jetson/catkin_ws/devel/lib/python2.7/dist-packages/jetracer/cfg/LineFollowConfig.py: //home/jetson/catkin_ws/devel/include/jetracer/LineFollowConfig.h
-	@$(CMAKE_COMMAND) -E touch_nocreate //home/jetson/catkin_ws/devel/lib/python2.7/dist-packages/jetracer/cfg/LineFollowConfig.py
+/home/jetson/catkin_ws/devel/lib/python2.7/dist-packages/jetracer/cfg/LineFollowConfig.py: /home/jetson/catkin_ws/devel/include/jetracer/LineFollowConfig.h
+	@$(CMAKE_COMMAND) -E touch_nocreate /home/jetson/catkin_ws/devel/lib/python2.7/dist-packages/jetracer/cfg/LineFollowConfig.py
 
-//home/jetson/catkin_ws/devel/share/jetracer/docs/LineFollowConfig.wikidoc: //home/jetson/catkin_ws/devel/include/jetracer/LineFollowConfig.h
-	@$(CMAKE_COMMAND) -E touch_nocreate //home/jetson/catkin_ws/devel/share/jetracer/docs/LineFollowConfig.wikidoc
+/home/jetson/catkin_ws/devel/share/jetracer/docs/LineFollowConfig.wikidoc: /home/jetson/catkin_ws/devel/include/jetracer/LineFollowConfig.h
+	@$(CMAKE_COMMAND) -E touch_nocreate /home/jetson/catkin_ws/devel/share/jetracer/docs/LineFollowConfig.wikidoc
 
 jetracer_gencfg: jetracer_ros/CMakeFiles/jetracer_gencfg
-jetracer_gencfg: //home/jetson/catkin_ws/devel/include/jetracer/colorConfig.h
-jetracer_gencfg: //home/jetson/catkin_ws/devel/share/jetracer/docs/colorConfig.dox
-jetracer_gencfg: //home/jetson/catkin_ws/devel/share/jetracer/docs/colorConfig-usage.dox
-jetracer_gencfg: //home/jetson/catkin_ws/devel/lib/python2.7/dist-packages/jetracer/cfg/colorConfig.py
-jetracer_gencfg: //home/jetson/catkin_ws/devel/share/jetracer/docs/colorConfig.wikidoc
-jetracer_gencfg: //home/jetson/catkin_ws/devel/include/jetracer/LineFollowConfig.h
-jetracer_gencfg: //home/jetson/catkin_ws/devel/share/jetracer/docs/LineFollowConfig.dox
-jetracer_gencfg: //home/jetson/catkin_ws/devel/share/jetracer/docs/LineFollowConfig-usage.dox
-jetracer_gencfg: //home/jetson/catkin_ws/devel/lib/python2.7/dist-packages/jetracer/cfg/LineFollowConfig.py
-jetracer_gencfg: //home/jetson/catkin_ws/devel/share/jetracer/docs/LineFollowConfig.wikidoc
+jetracer_gencfg: /home/jetson/catkin_ws/devel/include/jetracer/colorConfig.h
+jetracer_gencfg: /home/jetson/catkin_ws/devel/share/jetracer/docs/colorConfig.dox
+jetracer_gencfg: /home/jetson/catkin_ws/devel/share/jetracer/docs/colorConfig-usage.dox
+jetracer_gencfg: /home/jetson/catkin_ws/devel/lib/python2.7/dist-packages/jetracer/cfg/colorConfig.py
+jetracer_gencfg: /home/jetson/catkin_ws/devel/share/jetracer/docs/colorConfig.wikidoc
+jetracer_gencfg: /home/jetson/catkin_ws/devel/include/jetracer/LineFollowConfig.h
+jetracer_gencfg: /home/jetson/catkin_ws/devel/share/jetracer/docs/LineFollowConfig.dox
+jetracer_gencfg: /home/jetson/catkin_ws/devel/share/jetracer/docs/LineFollowConfig-usage.dox
+jetracer_gencfg: /home/jetson/catkin_ws/devel/lib/python2.7/dist-packages/jetracer/cfg/LineFollowConfig.py
+jetracer_gencfg: /home/jetson/catkin_ws/devel/share/jetracer/docs/LineFollowConfig.wikidoc
 jetracer_gencfg: jetracer_ros/CMakeFiles/jetracer_gencfg.dir/build.make
 
 .PHONY : jetracer_gencfg
@@ -120,6 +120,6 @@ jetracer_ros/CMakeFiles/jetracer_gencfg.dir/clean:
 .PHONY : jetracer_ros/CMakeFiles/jetracer_gencfg.dir/clean
 
 jetracer_ros/CMakeFiles/jetracer_gencfg.dir/depend:
-	cd /home/jetson/catkin_ws/build && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" //home/jetson/catkin_ws/src //home/jetson/catkin_ws/src/jetracer_ros /home/jetson/catkin_ws/build /home/jetson/catkin_ws/build/jetracer_ros /home/jetson/catkin_ws/build/jetracer_ros/CMakeFiles/jetracer_gencfg.dir/DependInfo.cmake --color=$(COLOR)
+	cd /home/jetson/catkin_ws/build && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /home/jetson/catkin_ws/src /home/jetson/catkin_ws/src/jetracer_ros /home/jetson/catkin_ws/build /home/jetson/catkin_ws/build/jetracer_ros /home/jetson/catkin_ws/build/jetracer_ros/CMakeFiles/jetracer_gencfg.dir/DependInfo.cmake --color=$(COLOR)
 .PHONY : jetracer_ros/CMakeFiles/jetracer_gencfg.dir/depend
 

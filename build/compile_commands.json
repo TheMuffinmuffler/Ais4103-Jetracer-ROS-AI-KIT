@@ -36,7 +36,7 @@
 },
 {
   "directory": "/home/jetson/catkin_ws/build/ris/src/hello_world",
-  "command": "/usr/bin/c++  -DROSCONSOLE_BACKEND_LOG4CXX -DROS_BUILD_SHARED_LIBS=1 -DROS_PACKAGE_NAME=\\\"ris\\\" -I//home/jetson/catkin_ws/devel/include -I/opt/ros/melodic/include -I/opt/ros/melodic/share/xmlrpcpp/cmake/../../../include/xmlrpcpp -I//home/jetson/catkin_ws/src/ris/src/hello_world -I//home/jetson/catkin_ws/src/ris/src/hello_world/SYSTEM    -fPIC -Wall -pedantic -std=gnu++1z -o CMakeFiles/hello_world.dir/main.cpp.o -c //home/jetson/catkin_ws/src/ris/src/hello_world/main.cpp",
-  "file": "//home/jetson/catkin_ws/src/ris/src/hello_world/main.cpp"
+  "command": "/usr/bin/c++  -DROSCONSOLE_BACKEND_LOG4CXX -DROS_BUILD_SHARED_LIBS=1 -DROS_PACKAGE_NAME=\\\"ris\\\" -I/home/jetson/catkin_ws/devel/include -I/opt/ros/melodic/include -I/opt/ros/melodic/share/xmlrpcpp/cmake/../../../include/xmlrpcpp -I/home/jetson/catkin_ws/src/ris/src/hello_world -I/home/jetson/catkin_ws/src/ris/src/hello_world/SYSTEM    -fPIC -Wall -pedantic -std=gnu++1z -o CMakeFiles/hello_world.dir/main.cpp.o -c /home/jetson/catkin_ws/src/ris/src/hello_world/main.cpp",
+  "file": "/home/jetson/catkin_ws/src/ris/src/hello_world/main.cpp"
 }
 ]

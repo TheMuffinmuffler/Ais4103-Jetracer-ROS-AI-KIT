@@ -1,5 +1,5 @@
 # CMake generated Testfile for 
-# Source directory: //home/jetson/catkin_ws/src/ris/src
+# Source directory: /home/jetson/catkin_ws/src/ris/src
 # Build directory: /home/jetson/catkin_ws/build/ris/src
 # 
 # This file includes the relevant testing commands required for 

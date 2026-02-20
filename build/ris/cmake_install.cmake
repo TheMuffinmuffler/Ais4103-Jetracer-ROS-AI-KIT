@@ -1,8 +1,8 @@
-# Install script for directory: //home/jetson/catkin_ws/src/ris
+# Install script for directory: /home/jetson/catkin_ws/src/ris
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
-  set(CMAKE_INSTALL_PREFIX "//home/jetson/catkin_ws/install")
+  set(CMAKE_INSTALL_PREFIX "/home/jetson/catkin_ws/install")
 endif()
 string(REGEX REPLACE "/$" "" CMAKE_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}")
 
@@ -49,7 +49,7 @@ if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_
 endif()
 
 if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_COMPONENT)
-  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/share/ris" TYPE FILE FILES "//home/jetson/catkin_ws/src/ris/package.xml")
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/share/ris" TYPE FILE FILES "/home/jetson/catkin_ws/src/ris/package.xml")
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)

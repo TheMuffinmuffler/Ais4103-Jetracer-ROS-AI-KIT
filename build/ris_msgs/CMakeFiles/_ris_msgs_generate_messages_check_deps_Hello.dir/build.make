@@ -46,7 +46,7 @@ RM = /usr/bin/cmake -E remove -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = //home/jetson/catkin_ws/src
+CMAKE_SOURCE_DIR = /home/jetson/catkin_ws/src
 
 # The top-level build directory on which CMake was run.
 CMAKE_BINARY_DIR = /home/jetson/catkin_ws/build
@@ -57,7 +57,7 @@ CMAKE_BINARY_DIR = /home/jetson/catkin_ws/build
 include ris_msgs/CMakeFiles/_ris_msgs_generate_messages_check_deps_Hello.dir/progress.make
 
 ris_msgs/CMakeFiles/_ris_msgs_generate_messages_check_deps_Hello:
-	cd /home/jetson/catkin_ws/build/ris_msgs && ../catkin_generated/env_cached.sh /usr/bin/python2 /opt/ros/melodic/share/genmsg/cmake/../../../lib/genmsg/genmsg_check_deps.py ris_msgs //home/jetson/catkin_ws/src/ris_msgs/msg//Hello.msg 
+	cd /home/jetson/catkin_ws/build/ris_msgs && ../catkin_generated/env_cached.sh /usr/bin/python2 /opt/ros/melodic/share/genmsg/cmake/../../../lib/genmsg/genmsg_check_deps.py ris_msgs /home/jetson/catkin_ws/src/ris_msgs/msg//Hello.msg 
 
 _ris_msgs_generate_messages_check_deps_Hello: ris_msgs/CMakeFiles/_ris_msgs_generate_messages_check_deps_Hello
 _ris_msgs_generate_messages_check_deps_Hello: ris_msgs/CMakeFiles/_ris_msgs_generate_messages_check_deps_Hello.dir/build.make
@@ -74,6 +74,6 @@ ris_msgs/CMakeFiles/_ris_msgs_generate_messages_check_deps_Hello.dir/clean:
 .PHONY : ris_msgs/CMakeFiles/_ris_msgs_generate_messages_check_deps_Hello.dir/clean
 
 ris_msgs/CMakeFiles/_ris_msgs_generate_messages_check_deps_Hello.dir/depend:
-	cd /home/jetson/catkin_ws/build && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" //home/jetson/catkin_ws/src //home/jetson/catkin_ws/src/ris_msgs /home/jetson/catkin_ws/build /home/jetson/catkin_ws/build/ris_msgs /home/jetson/catkin_ws/build/ris_msgs/CMakeFiles/_ris_msgs_generate_messages_check_deps_Hello.dir/DependInfo.cmake --color=$(COLOR)
+	cd /home/jetson/catkin_ws/build && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /home/jetson/catkin_ws/src /home/jetson/catkin_ws/src/ris_msgs /home/jetson/catkin_ws/build /home/jetson/catkin_ws/build/ris_msgs /home/jetson/catkin_ws/build/ris_msgs/CMakeFiles/_ris_msgs_generate_messages_check_deps_Hello.dir/DependInfo.cmake --color=$(COLOR)
 .PHONY : ris_msgs/CMakeFiles/_ris_msgs_generate_messages_check_deps_Hello.dir/depend
 
