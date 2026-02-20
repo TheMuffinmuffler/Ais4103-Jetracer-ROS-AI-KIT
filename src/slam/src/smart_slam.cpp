@@ -1,6 +1,7 @@
 #include <ros/ros.h>
 #include <nav_msgs/OccupancyGrid.h>
 #include <cstdlib>
+#include <cmath>
 
 double last_ratio = 0.0;
 ros::Time last_change_time;
