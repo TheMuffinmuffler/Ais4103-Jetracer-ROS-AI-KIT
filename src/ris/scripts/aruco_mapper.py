@@ -14,18 +14,14 @@ class ArucoMapper:
         self.camera_name = rospy.get_param("~camera_name","csi_cam_0")
         self.bridge = CvBridge()
 
-        self.camera_matrix = np.array([
-            [399.340134, 0.000000, 324.141394],
-            [0.000000, 532.852065, 217.404681],
-            [0.000000, 0.000000, 1.000000]
-        ])
-
-
-        self.dist_coeffs = np.array([[-0.322724, 0.097739, -0.000331, -0.001090, 0.0]])
+        self.camera_matrix = None
+        self.dist_coeffs = None
 
         # Your measured ArUco marker size in meters
         self.marker_size = 0.038
 
+
+        self.info_sub = rospy.Subscriber(self.camera_name+"/camera_info", CameraInfo, self.info_callback)
 
         self.image_sub = rospy.Subscriber(self.camera_name+"/image_raw/compressed", CompressedImage, self.callback)
         self.image_pub = rospy.Publisher("/aruco_video/compressed", CompressedImage, queue_size=10)
@@ -38,7 +34,13 @@ class ArucoMapper:
         ]
         self.aruco_params = aruco.DetectorParameters_create()
 
+    def info_callback(self, msg):
+        self.camera_matrix = np.array(msg.K).reshape(3, 3)
+        self.dist_coeffs = np.array(msg.D).reshape(1, 5)
+
     def callback(self, data):
+        if self.camera_matrix is None or self.dist_coeffs is None:
+            return
         try:
             img = self.bridge.compressed_imgmsg_to_cv2(data, "bgr8")
         except CvBridgeError as e:
