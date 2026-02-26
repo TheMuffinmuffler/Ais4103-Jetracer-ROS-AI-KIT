@@ -46,49 +46,49 @@ RM = /usr/bin/cmake -E remove -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /home/jetson/catkin_ws/src
+CMAKE_SOURCE_DIR = /home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/src
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /home/jetson/catkin_ws/build
+CMAKE_BINARY_DIR = /home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/build
 
 # Utility rule file for ris_msgs_generate_messages_py.
 
 # Include the progress variables for this target.
 include ris_msgs/CMakeFiles/ris_msgs_generate_messages_py.dir/progress.make
 
-ris_msgs/CMakeFiles/ris_msgs_generate_messages_py: /home/jetson/catkin_ws/devel/lib/python2.7/dist-packages/ris_msgs/msg/_Hello.py
-ris_msgs/CMakeFiles/ris_msgs_generate_messages_py: /home/jetson/catkin_ws/devel/lib/python2.7/dist-packages/ris_msgs/srv/_PingPong.py
-ris_msgs/CMakeFiles/ris_msgs_generate_messages_py: /home/jetson/catkin_ws/devel/lib/python2.7/dist-packages/ris_msgs/msg/__init__.py
-ris_msgs/CMakeFiles/ris_msgs_generate_messages_py: /home/jetson/catkin_ws/devel/lib/python2.7/dist-packages/ris_msgs/srv/__init__.py
+ris_msgs/CMakeFiles/ris_msgs_generate_messages_py: /home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/devel/lib/python2.7/dist-packages/ris_msgs/msg/_Hello.py
+ris_msgs/CMakeFiles/ris_msgs_generate_messages_py: /home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/devel/lib/python2.7/dist-packages/ris_msgs/srv/_PingPong.py
+ris_msgs/CMakeFiles/ris_msgs_generate_messages_py: /home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/devel/lib/python2.7/dist-packages/ris_msgs/msg/__init__.py
+ris_msgs/CMakeFiles/ris_msgs_generate_messages_py: /home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/devel/lib/python2.7/dist-packages/ris_msgs/srv/__init__.py
 
 
-/home/jetson/catkin_ws/devel/lib/python2.7/dist-packages/ris_msgs/msg/_Hello.py: /opt/ros/melodic/lib/genpy/genmsg_py.py
-/home/jetson/catkin_ws/devel/lib/python2.7/dist-packages/ris_msgs/msg/_Hello.py: /home/jetson/catkin_ws/src/ris_msgs/msg/Hello.msg
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --blue --bold --progress-dir=/home/jetson/catkin_ws/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Generating Python from MSG ris_msgs/Hello"
-	cd /home/jetson/catkin_ws/build/ris_msgs && ../catkin_generated/env_cached.sh /usr/bin/python2 /opt/ros/melodic/share/genpy/cmake/../../../lib/genpy/genmsg_py.py /home/jetson/catkin_ws/src/ris_msgs/msg//Hello.msg -Iris_msgs:/home/jetson/catkin_ws/src/ris_msgs/msg/ -Istd_msgs:/opt/ros/melodic/share/std_msgs/cmake/../msg -p ris_msgs -o /home/jetson/catkin_ws/devel/lib/python2.7/dist-packages/ris_msgs/msg
+/home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/devel/lib/python2.7/dist-packages/ris_msgs/msg/_Hello.py: /opt/ros/melodic/lib/genpy/genmsg_py.py
+/home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/devel/lib/python2.7/dist-packages/ris_msgs/msg/_Hello.py: /home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/src/ris_msgs/msg/Hello.msg
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --blue --bold --progress-dir=/home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Generating Python from MSG ris_msgs/Hello"
+	cd /home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/build/ris_msgs && ../catkin_generated/env_cached.sh /usr/bin/python2 /opt/ros/melodic/share/genpy/cmake/../../../lib/genpy/genmsg_py.py /home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/src/ris_msgs/msg//Hello.msg -Iris_msgs:/home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/src/ris_msgs/msg/ -Istd_msgs:/opt/ros/melodic/share/std_msgs/cmake/../msg -p ris_msgs -o /home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/devel/lib/python2.7/dist-packages/ris_msgs/msg
 
-/home/jetson/catkin_ws/devel/lib/python2.7/dist-packages/ris_msgs/srv/_PingPong.py: /opt/ros/melodic/lib/genpy/gensrv_py.py
-/home/jetson/catkin_ws/devel/lib/python2.7/dist-packages/ris_msgs/srv/_PingPong.py: /home/jetson/catkin_ws/src/ris_msgs/srv/PingPong.srv
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --blue --bold --progress-dir=/home/jetson/catkin_ws/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Generating Python code from SRV ris_msgs/PingPong"
-	cd /home/jetson/catkin_ws/build/ris_msgs && ../catkin_generated/env_cached.sh /usr/bin/python2 /opt/ros/melodic/share/genpy/cmake/../../../lib/genpy/gensrv_py.py /home/jetson/catkin_ws/src/ris_msgs/srv//PingPong.srv -Iris_msgs:/home/jetson/catkin_ws/src/ris_msgs/msg/ -Istd_msgs:/opt/ros/melodic/share/std_msgs/cmake/../msg -p ris_msgs -o /home/jetson/catkin_ws/devel/lib/python2.7/dist-packages/ris_msgs/srv
+/home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/devel/lib/python2.7/dist-packages/ris_msgs/srv/_PingPong.py: /opt/ros/melodic/lib/genpy/gensrv_py.py
+/home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/devel/lib/python2.7/dist-packages/ris_msgs/srv/_PingPong.py: /home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/src/ris_msgs/srv/PingPong.srv
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --blue --bold --progress-dir=/home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Generating Python code from SRV ris_msgs/PingPong"
+	cd /home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/build/ris_msgs && ../catkin_generated/env_cached.sh /usr/bin/python2 /opt/ros/melodic/share/genpy/cmake/../../../lib/genpy/gensrv_py.py /home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/src/ris_msgs/srv//PingPong.srv -Iris_msgs:/home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/src/ris_msgs/msg/ -Istd_msgs:/opt/ros/melodic/share/std_msgs/cmake/../msg -p ris_msgs -o /home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/devel/lib/python2.7/dist-packages/ris_msgs/srv
 
-/home/jetson/catkin_ws/devel/lib/python2.7/dist-packages/ris_msgs/msg/__init__.py: /opt/ros/melodic/lib/genpy/genmsg_py.py
-/home/jetson/catkin_ws/devel/lib/python2.7/dist-packages/ris_msgs/msg/__init__.py: /home/jetson/catkin_ws/devel/lib/python2.7/dist-packages/ris_msgs/msg/_Hello.py
-/home/jetson/catkin_ws/devel/lib/python2.7/dist-packages/ris_msgs/msg/__init__.py: /home/jetson/catkin_ws/devel/lib/python2.7/dist-packages/ris_msgs/srv/_PingPong.py
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --blue --bold --progress-dir=/home/jetson/catkin_ws/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Generating Python msg __init__.py for ris_msgs"
-	cd /home/jetson/catkin_ws/build/ris_msgs && ../catkin_generated/env_cached.sh /usr/bin/python2 /opt/ros/melodic/share/genpy/cmake/../../../lib/genpy/genmsg_py.py -o /home/jetson/catkin_ws/devel/lib/python2.7/dist-packages/ris_msgs/msg --initpy
+/home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/devel/lib/python2.7/dist-packages/ris_msgs/msg/__init__.py: /opt/ros/melodic/lib/genpy/genmsg_py.py
+/home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/devel/lib/python2.7/dist-packages/ris_msgs/msg/__init__.py: /home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/devel/lib/python2.7/dist-packages/ris_msgs/msg/_Hello.py
+/home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/devel/lib/python2.7/dist-packages/ris_msgs/msg/__init__.py: /home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/devel/lib/python2.7/dist-packages/ris_msgs/srv/_PingPong.py
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --blue --bold --progress-dir=/home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Generating Python msg __init__.py for ris_msgs"
+	cd /home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/build/ris_msgs && ../catkin_generated/env_cached.sh /usr/bin/python2 /opt/ros/melodic/share/genpy/cmake/../../../lib/genpy/genmsg_py.py -o /home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/devel/lib/python2.7/dist-packages/ris_msgs/msg --initpy
 
-/home/jetson/catkin_ws/devel/lib/python2.7/dist-packages/ris_msgs/srv/__init__.py: /opt/ros/melodic/lib/genpy/genmsg_py.py
-/home/jetson/catkin_ws/devel/lib/python2.7/dist-packages/ris_msgs/srv/__init__.py: /home/jetson/catkin_ws/devel/lib/python2.7/dist-packages/ris_msgs/msg/_Hello.py
-/home/jetson/catkin_ws/devel/lib/python2.7/dist-packages/ris_msgs/srv/__init__.py: /home/jetson/catkin_ws/devel/lib/python2.7/dist-packages/ris_msgs/srv/_PingPong.py
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --blue --bold --progress-dir=/home/jetson/catkin_ws/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Generating Python srv __init__.py for ris_msgs"
-	cd /home/jetson/catkin_ws/build/ris_msgs && ../catkin_generated/env_cached.sh /usr/bin/python2 /opt/ros/melodic/share/genpy/cmake/../../../lib/genpy/genmsg_py.py -o /home/jetson/catkin_ws/devel/lib/python2.7/dist-packages/ris_msgs/srv --initpy
+/home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/devel/lib/python2.7/dist-packages/ris_msgs/srv/__init__.py: /opt/ros/melodic/lib/genpy/genmsg_py.py
+/home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/devel/lib/python2.7/dist-packages/ris_msgs/srv/__init__.py: /home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/devel/lib/python2.7/dist-packages/ris_msgs/msg/_Hello.py
+/home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/devel/lib/python2.7/dist-packages/ris_msgs/srv/__init__.py: /home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/devel/lib/python2.7/dist-packages/ris_msgs/srv/_PingPong.py
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --blue --bold --progress-dir=/home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Generating Python srv __init__.py for ris_msgs"
+	cd /home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/build/ris_msgs && ../catkin_generated/env_cached.sh /usr/bin/python2 /opt/ros/melodic/share/genpy/cmake/../../../lib/genpy/genmsg_py.py -o /home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/devel/lib/python2.7/dist-packages/ris_msgs/srv --initpy
 
 ris_msgs_generate_messages_py: ris_msgs/CMakeFiles/ris_msgs_generate_messages_py
-ris_msgs_generate_messages_py: /home/jetson/catkin_ws/devel/lib/python2.7/dist-packages/ris_msgs/msg/_Hello.py
-ris_msgs_generate_messages_py: /home/jetson/catkin_ws/devel/lib/python2.7/dist-packages/ris_msgs/srv/_PingPong.py
-ris_msgs_generate_messages_py: /home/jetson/catkin_ws/devel/lib/python2.7/dist-packages/ris_msgs/msg/__init__.py
-ris_msgs_generate_messages_py: /home/jetson/catkin_ws/devel/lib/python2.7/dist-packages/ris_msgs/srv/__init__.py
+ris_msgs_generate_messages_py: /home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/devel/lib/python2.7/dist-packages/ris_msgs/msg/_Hello.py
+ris_msgs_generate_messages_py: /home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/devel/lib/python2.7/dist-packages/ris_msgs/srv/_PingPong.py
+ris_msgs_generate_messages_py: /home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/devel/lib/python2.7/dist-packages/ris_msgs/msg/__init__.py
+ris_msgs_generate_messages_py: /home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/devel/lib/python2.7/dist-packages/ris_msgs/srv/__init__.py
 ris_msgs_generate_messages_py: ris_msgs/CMakeFiles/ris_msgs_generate_messages_py.dir/build.make
 
 .PHONY : ris_msgs_generate_messages_py
@@ -99,10 +99,10 @@ ris_msgs/CMakeFiles/ris_msgs_generate_messages_py.dir/build: ris_msgs_generate_m
 .PHONY : ris_msgs/CMakeFiles/ris_msgs_generate_messages_py.dir/build
 
 ris_msgs/CMakeFiles/ris_msgs_generate_messages_py.dir/clean:
-	cd /home/jetson/catkin_ws/build/ris_msgs && $(CMAKE_COMMAND) -P CMakeFiles/ris_msgs_generate_messages_py.dir/cmake_clean.cmake
+	cd /home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/build/ris_msgs && $(CMAKE_COMMAND) -P CMakeFiles/ris_msgs_generate_messages_py.dir/cmake_clean.cmake
 .PHONY : ris_msgs/CMakeFiles/ris_msgs_generate_messages_py.dir/clean
 
 ris_msgs/CMakeFiles/ris_msgs_generate_messages_py.dir/depend:
-	cd /home/jetson/catkin_ws/build && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /home/jetson/catkin_ws/src /home/jetson/catkin_ws/src/ris_msgs /home/jetson/catkin_ws/build /home/jetson/catkin_ws/build/ris_msgs /home/jetson/catkin_ws/build/ris_msgs/CMakeFiles/ris_msgs_generate_messages_py.dir/DependInfo.cmake --color=$(COLOR)
+	cd /home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/build && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/src /home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/src/ris_msgs /home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/build /home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/build/ris_msgs /home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/build/ris_msgs/CMakeFiles/ris_msgs_generate_messages_py.dir/DependInfo.cmake --color=$(COLOR)
 .PHONY : ris_msgs/CMakeFiles/ris_msgs_generate_messages_py.dir/depend
 

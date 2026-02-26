@@ -43,10 +43,10 @@ RM = /usr/bin/cmake -E remove -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /home/jetson/catkin_ws/src
+CMAKE_SOURCE_DIR = /home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/src
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /home/jetson/catkin_ws/build
+CMAKE_BINARY_DIR = /home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/build
 
 # Utility rule file for actionlib_generate_messages_py.
 
@@ -63,10 +63,10 @@ jetracer_ros/CMakeFiles/actionlib_generate_messages_py.dir/build: actionlib_gene
 .PHONY : jetracer_ros/CMakeFiles/actionlib_generate_messages_py.dir/build
 
 jetracer_ros/CMakeFiles/actionlib_generate_messages_py.dir/clean:
-	cd /home/jetson/catkin_ws/build/jetracer_ros && $(CMAKE_COMMAND) -P CMakeFiles/actionlib_generate_messages_py.dir/cmake_clean.cmake
+	cd /home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/build/jetracer_ros && $(CMAKE_COMMAND) -P CMakeFiles/actionlib_generate_messages_py.dir/cmake_clean.cmake
 .PHONY : jetracer_ros/CMakeFiles/actionlib_generate_messages_py.dir/clean
 
 jetracer_ros/CMakeFiles/actionlib_generate_messages_py.dir/depend:
-	cd /home/jetson/catkin_ws/build && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /home/jetson/catkin_ws/src /home/jetson/catkin_ws/src/jetracer_ros /home/jetson/catkin_ws/build /home/jetson/catkin_ws/build/jetracer_ros /home/jetson/catkin_ws/build/jetracer_ros/CMakeFiles/actionlib_generate_messages_py.dir/DependInfo.cmake --color=$(COLOR)
+	cd /home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/build && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/src /home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/src/jetracer_ros /home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/build /home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/build/jetracer_ros /home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/build/jetracer_ros/CMakeFiles/actionlib_generate_messages_py.dir/DependInfo.cmake --color=$(COLOR)
 .PHONY : jetracer_ros/CMakeFiles/actionlib_generate_messages_py.dir/depend
 
