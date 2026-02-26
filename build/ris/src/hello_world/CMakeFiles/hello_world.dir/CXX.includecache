@@ -6,7 +6,7 @@
 
 #IncludeRegexTransform: 
 
-/home/jetson/catkin_ws/src/ris/src/hello_world/main.cpp
+/home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/src/ris/src/hello_world/main.cpp
 ros/ros.h
 -
 ros/console.h

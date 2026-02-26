@@ -1,4 +1,4 @@
-prefix=/home/jetson/catkin_ws/install
+prefix=/home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/install
 
 Name: jetracer
 Description: Description of jetracer

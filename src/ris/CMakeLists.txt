@@ -15,6 +15,7 @@ find_package(catkin REQUIRED COMPONENTS
   ris_msgs
   std_msgs
   message_runtime
+  nav_msgs ##### new for testing slam 
 )
 
 ## 2. Declare Include Directories (CRITICAL)

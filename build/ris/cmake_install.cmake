@@ -1,8 +1,8 @@
-# Install script for directory: /home/jetson/catkin_ws/src/ris
+# Install script for directory: /home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/src/ris
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
-  set(CMAKE_INSTALL_PREFIX "/home/jetson/catkin_ws/install")
+  set(CMAKE_INSTALL_PREFIX "/home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/install")
 endif()
 string(REGEX REPLACE "/$" "" CMAKE_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}")
 
@@ -38,23 +38,23 @@ if(NOT DEFINED CMAKE_CROSSCOMPILING)
 endif()
 
 if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_COMPONENT)
-  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/pkgconfig" TYPE FILE FILES "/home/jetson/catkin_ws/build/ris/catkin_generated/installspace/ris.pc")
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/pkgconfig" TYPE FILE FILES "/home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/build/ris/catkin_generated/installspace/ris.pc")
 endif()
 
 if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_COMPONENT)
   file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/share/ris/cmake" TYPE FILE FILES
-    "/home/jetson/catkin_ws/build/ris/catkin_generated/installspace/risConfig.cmake"
-    "/home/jetson/catkin_ws/build/ris/catkin_generated/installspace/risConfig-version.cmake"
+    "/home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/build/ris/catkin_generated/installspace/risConfig.cmake"
+    "/home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/build/ris/catkin_generated/installspace/risConfig-version.cmake"
     )
 endif()
 
 if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_COMPONENT)
-  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/share/ris" TYPE FILE FILES "/home/jetson/catkin_ws/src/ris/package.xml")
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/share/ris" TYPE FILE FILES "/home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/src/ris/package.xml")
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for each subdirectory.
-  include("/home/jetson/catkin_ws/build/ris/src/cmake_install.cmake")
+  include("/home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/build/ris/src/cmake_install.cmake")
 
 endif()
 

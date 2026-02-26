@@ -1,8 +1,8 @@
-# Install script for directory: /home/jetson/catkin_ws/src/ris/src
+# Install script for directory: /home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/src/ris/src
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
-  set(CMAKE_INSTALL_PREFIX "/home/jetson/catkin_ws/install")
+  set(CMAKE_INSTALL_PREFIX "/home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/install")
 endif()
 string(REGEX REPLACE "/$" "" CMAKE_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}")
 
@@ -39,7 +39,9 @@ endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for each subdirectory.
-  include("/home/jetson/catkin_ws/build/ris/src/hello_world/cmake_install.cmake")
+  include("/home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/build/ris/src/hello_world/cmake_install.cmake")
+  include("/home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/build/ris/src/map_reader/cmake_install.cmake")
+  include("/home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/build/ris/src/graph_planner/cmake_install.cmake")
 
 endif()
 
