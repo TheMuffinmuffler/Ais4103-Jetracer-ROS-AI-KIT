@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+source /opt/ros/melodic/setup.bash#!/usr/bin/env python
 import roslib
 import sys
 import rospy

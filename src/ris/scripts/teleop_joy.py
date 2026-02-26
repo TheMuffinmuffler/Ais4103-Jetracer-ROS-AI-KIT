@@ -9,7 +9,7 @@ from geometry_msgs.msg import Twist
 class Teleop:
     def __init__(self):
         rospy.init_node('teleop_joy')
-        self.x_speed = rospy.get_param('~x_speed',0.3)
+        self.x_speed = rospy.get_param('~x_speed',0.5)
         self.y_speed = rospy.get_param('~y_speed',0)
         self.w_speed = rospy.get_param('~w_speed',1)
 

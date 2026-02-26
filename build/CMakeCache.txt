@@ -415,7 +415,7 @@ ris_SOURCE_DIR:STATIC=/home/jetson/catkin_ws/src/ris
 ris_msgs_BINARY_DIR:STATIC=/home/jetson/catkin_ws/build/ris_msgs
 
 //The directory containing a CMake configuration file for ris_msgs.
-ris_msgs_DIR:PATH=/home/jetson/catkin_ws/devel/share/ris_msgs/cmake
+ris_msgs_DIR:PATH=//home/jetson/catkin_ws/devel/share/ris_msgs/cmake
 
 //Value Computed by CMake
 ris_msgs_SOURCE_DIR:STATIC=/home/jetson/catkin_ws/src/ris_msgs
