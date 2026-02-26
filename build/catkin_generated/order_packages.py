@@ -2,4 +2,4 @@
 source_root_dir = '/home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/src'
 whitelisted_packages = ''.split(';') if '' != '' else []
 blacklisted_packages = ''.split(';') if '' != '' else []
-underlay_workspaces = '/home/jetson/catkin_ws/devel;/opt/ros/melodic'.split(';') if '/home/jetson/catkin_ws/devel;/opt/ros/melodic' != '' else []
+underlay_workspaces = '//home/jetson/catkin_ws/devel;/home/jetson/catkin_ws/devel;/opt/ros/melodic'.split(';') if '//home/jetson/catkin_ws/devel;/home/jetson/catkin_ws/devel;/opt/ros/melodic' != '' else []
