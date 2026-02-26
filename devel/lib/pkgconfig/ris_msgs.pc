@@ -1,8 +1,8 @@
-prefix=/home/jetson/catkin_ws/devel
+prefix=/home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/devel
 
 Name: ris_msgs
 Description: Description of ris_msgs
 Version: 0.0.1
-Cflags: -I/home/jetson/catkin_ws/devel/include
+Cflags: -I/home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/devel/include
 Libs: -L${prefix}/lib 
 Requires: std_msgs

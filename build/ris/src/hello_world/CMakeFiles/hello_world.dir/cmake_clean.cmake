@@ -1,7 +1,7 @@
 file(REMOVE_RECURSE
   "CMakeFiles/hello_world.dir/main.cpp.o"
-  "/home/jetson/catkin_ws/devel/lib/ris/hello_world.pdb"
-  "/home/jetson/catkin_ws/devel/lib/ris/hello_world"
+  "/home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/devel/lib/ris/hello_world.pdb"
+  "/home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/devel/lib/ris/hello_world"
 )
 
 # Per-language clean rules from dependency scanning.

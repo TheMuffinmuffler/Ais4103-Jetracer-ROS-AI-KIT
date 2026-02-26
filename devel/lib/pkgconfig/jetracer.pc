@@ -1,8 +1,8 @@
-prefix=/home/jetson/catkin_ws/devel
+prefix=/home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/devel
 
 Name: jetracer
 Description: Description of jetracer
 Version: 0.0.0
-Cflags: -I/home/jetson/catkin_ws/devel/include
+Cflags: -I/home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/devel/include
 Libs: -L${prefix}/lib 
 Requires: 

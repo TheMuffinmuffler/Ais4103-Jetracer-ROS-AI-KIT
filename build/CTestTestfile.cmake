@@ -1,6 +1,6 @@
 # CMake generated Testfile for 
-# Source directory: /home/jetson/catkin_ws/src
-# Build directory: /home/jetson/catkin_ws/build
+# Source directory: /home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/src
+# Build directory: /home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/build
 # 
 # This file includes the relevant testing commands required for 
 # testing this directory and lists subdirectories to be tested as well.

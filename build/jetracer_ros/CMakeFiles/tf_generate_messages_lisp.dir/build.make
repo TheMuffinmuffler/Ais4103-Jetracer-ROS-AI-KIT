@@ -43,10 +43,10 @@ RM = /usr/bin/cmake -E remove -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /home/jetson/catkin_ws/src
+CMAKE_SOURCE_DIR = /home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/src
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /home/jetson/catkin_ws/build
+CMAKE_BINARY_DIR = /home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/build
 
 # Utility rule file for tf_generate_messages_lisp.
 
@@ -63,10 +63,10 @@ jetracer_ros/CMakeFiles/tf_generate_messages_lisp.dir/build: tf_generate_message
 .PHONY : jetracer_ros/CMakeFiles/tf_generate_messages_lisp.dir/build
 
 jetracer_ros/CMakeFiles/tf_generate_messages_lisp.dir/clean:
-	cd /home/jetson/catkin_ws/build/jetracer_ros && $(CMAKE_COMMAND) -P CMakeFiles/tf_generate_messages_lisp.dir/cmake_clean.cmake
+	cd /home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/build/jetracer_ros && $(CMAKE_COMMAND) -P CMakeFiles/tf_generate_messages_lisp.dir/cmake_clean.cmake
 .PHONY : jetracer_ros/CMakeFiles/tf_generate_messages_lisp.dir/clean
 
 jetracer_ros/CMakeFiles/tf_generate_messages_lisp.dir/depend:
-	cd /home/jetson/catkin_ws/build && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /home/jetson/catkin_ws/src /home/jetson/catkin_ws/src/jetracer_ros /home/jetson/catkin_ws/build /home/jetson/catkin_ws/build/jetracer_ros /home/jetson/catkin_ws/build/jetracer_ros/CMakeFiles/tf_generate_messages_lisp.dir/DependInfo.cmake --color=$(COLOR)
+	cd /home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/build && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/src /home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/src/jetracer_ros /home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/build /home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/build/jetracer_ros /home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/build/jetracer_ros/CMakeFiles/tf_generate_messages_lisp.dir/DependInfo.cmake --color=$(COLOR)
 .PHONY : jetracer_ros/CMakeFiles/tf_generate_messages_lisp.dir/depend
 

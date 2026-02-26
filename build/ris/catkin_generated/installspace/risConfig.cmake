@@ -67,14 +67,14 @@ set(ris_CONFIG_INCLUDED TRUE)
 
 # set variables for source/devel/install prefixes
 if("FALSE" STREQUAL "TRUE")
-  set(ris_SOURCE_PREFIX /home/jetson/catkin_ws/src/ris)
-  set(ris_DEVEL_PREFIX /home/jetson/catkin_ws/devel)
+  set(ris_SOURCE_PREFIX /home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/src/ris)
+  set(ris_DEVEL_PREFIX /home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/devel)
   set(ris_INSTALL_PREFIX "")
   set(ris_PREFIX ${ris_DEVEL_PREFIX})
 else()
   set(ris_SOURCE_PREFIX "")
   set(ris_DEVEL_PREFIX "")
-  set(ris_INSTALL_PREFIX /home/jetson/catkin_ws/install)
+  set(ris_INSTALL_PREFIX /home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/install)
   set(ris_PREFIX ${ris_INSTALL_PREFIX})
 endif()
 
@@ -154,7 +154,7 @@ foreach(library ${libraries})
     set(lib_path "")
     set(lib "${library}-NOTFOUND")
     # since the path where the library is found is returned we have to iterate over the paths manually
-    foreach(path /home/jetson/catkin_ws/install/lib;/home/jetson/catkin_ws/devel/lib;/opt/ros/melodic/lib)
+    foreach(path /home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/install/lib;/home/jetson/catkin_ws/devel/lib;/opt/ros/melodic/lib)
       find_library(lib ${library}
         PATHS ${path}
         NO_DEFAULT_PATH NO_CMAKE_FIND_ROOT_PATH)

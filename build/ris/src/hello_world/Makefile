@@ -51,10 +51,10 @@ RM = /usr/bin/cmake -E remove -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /home/jetson/catkin_ws/src
+CMAKE_SOURCE_DIR = /home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/src
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /home/jetson/catkin_ws/build
+CMAKE_BINARY_DIR = /home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/build
 
 #=============================================================================
 # Targets provided globally by CMake.
@@ -140,14 +140,14 @@ install/fast: preinstall/fast
 
 # The main all target
 all: cmake_check_build_system
-	cd /home/jetson/catkin_ws/build && $(CMAKE_COMMAND) -E cmake_progress_start /home/jetson/catkin_ws/build/CMakeFiles /home/jetson/catkin_ws/build/ris/src/hello_world/CMakeFiles/progress.marks
-	cd /home/jetson/catkin_ws/build && $(MAKE) -f CMakeFiles/Makefile2 ris/src/hello_world/all
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/jetson/catkin_ws/build/CMakeFiles 0
+	cd /home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/build && $(CMAKE_COMMAND) -E cmake_progress_start /home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/build/CMakeFiles /home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/build/ris/src/hello_world/CMakeFiles/progress.marks
+	cd /home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/build && $(MAKE) -f CMakeFiles/Makefile2 ris/src/hello_world/all
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/build/CMakeFiles 0
 .PHONY : all
 
 # The main clean target
 clean:
-	cd /home/jetson/catkin_ws/build && $(MAKE) -f CMakeFiles/Makefile2 ris/src/hello_world/clean
+	cd /home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/build && $(MAKE) -f CMakeFiles/Makefile2 ris/src/hello_world/clean
 .PHONY : clean
 
 # The main clean target
@@ -157,22 +157,22 @@ clean/fast: clean
 
 # Prepare targets for installation.
 preinstall: all
-	cd /home/jetson/catkin_ws/build && $(MAKE) -f CMakeFiles/Makefile2 ris/src/hello_world/preinstall
+	cd /home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/build && $(MAKE) -f CMakeFiles/Makefile2 ris/src/hello_world/preinstall
 .PHONY : preinstall
 
 # Prepare targets for installation.
 preinstall/fast:
-	cd /home/jetson/catkin_ws/build && $(MAKE) -f CMakeFiles/Makefile2 ris/src/hello_world/preinstall
+	cd /home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/build && $(MAKE) -f CMakeFiles/Makefile2 ris/src/hello_world/preinstall
 .PHONY : preinstall/fast
 
 # clear depends
 depend:
-	cd /home/jetson/catkin_ws/build && $(CMAKE_COMMAND) -H$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 1
+	cd /home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/build && $(CMAKE_COMMAND) -H$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 1
 .PHONY : depend
 
 # Convenience name for target.
 ris/src/hello_world/CMakeFiles/hello_world.dir/rule:
-	cd /home/jetson/catkin_ws/build && $(MAKE) -f CMakeFiles/Makefile2 ris/src/hello_world/CMakeFiles/hello_world.dir/rule
+	cd /home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/build && $(MAKE) -f CMakeFiles/Makefile2 ris/src/hello_world/CMakeFiles/hello_world.dir/rule
 .PHONY : ris/src/hello_world/CMakeFiles/hello_world.dir/rule
 
 # Convenience name for target.
@@ -182,7 +182,7 @@ hello_world: ris/src/hello_world/CMakeFiles/hello_world.dir/rule
 
 # fast build rule for target.
 hello_world/fast:
-	cd /home/jetson/catkin_ws/build && $(MAKE) -f ris/src/hello_world/CMakeFiles/hello_world.dir/build.make ris/src/hello_world/CMakeFiles/hello_world.dir/build
+	cd /home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/build && $(MAKE) -f ris/src/hello_world/CMakeFiles/hello_world.dir/build.make ris/src/hello_world/CMakeFiles/hello_world.dir/build
 .PHONY : hello_world/fast
 
 main.o: main.cpp.o
@@ -191,7 +191,7 @@ main.o: main.cpp.o
 
 # target to build an object file
 main.cpp.o:
-	cd /home/jetson/catkin_ws/build && $(MAKE) -f ris/src/hello_world/CMakeFiles/hello_world.dir/build.make ris/src/hello_world/CMakeFiles/hello_world.dir/main.cpp.o
+	cd /home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/build && $(MAKE) -f ris/src/hello_world/CMakeFiles/hello_world.dir/build.make ris/src/hello_world/CMakeFiles/hello_world.dir/main.cpp.o
 .PHONY : main.cpp.o
 
 main.i: main.cpp.i
@@ -200,7 +200,7 @@ main.i: main.cpp.i
 
 # target to preprocess a source file
 main.cpp.i:
-	cd /home/jetson/catkin_ws/build && $(MAKE) -f ris/src/hello_world/CMakeFiles/hello_world.dir/build.make ris/src/hello_world/CMakeFiles/hello_world.dir/main.cpp.i
+	cd /home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/build && $(MAKE) -f ris/src/hello_world/CMakeFiles/hello_world.dir/build.make ris/src/hello_world/CMakeFiles/hello_world.dir/main.cpp.i
 .PHONY : main.cpp.i
 
 main.s: main.cpp.s
@@ -209,7 +209,7 @@ main.s: main.cpp.s
 
 # target to generate assembly for a file
 main.cpp.s:
-	cd /home/jetson/catkin_ws/build && $(MAKE) -f ris/src/hello_world/CMakeFiles/hello_world.dir/build.make ris/src/hello_world/CMakeFiles/hello_world.dir/main.cpp.s
+	cd /home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/build && $(MAKE) -f ris/src/hello_world/CMakeFiles/hello_world.dir/build.make ris/src/hello_world/CMakeFiles/hello_world.dir/main.cpp.s
 .PHONY : main.cpp.s
 
 # Help Target
@@ -240,6 +240,6 @@ help:
 # No rule that depends on this can have commands that come from listfiles
 # because they might be regenerated.
 cmake_check_build_system:
-	cd /home/jetson/catkin_ws/build && $(CMAKE_COMMAND) -H$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 0
+	cd /home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/build && $(CMAKE_COMMAND) -H$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 0
 .PHONY : cmake_check_build_system
 
