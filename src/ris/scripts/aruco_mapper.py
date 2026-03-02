@@ -6,12 +6,18 @@ import rospy
 import cv2 as cv
 import numpy as np
 import cv2.aruco as aruco
-from sensor_msgs.msg import CompressedImage
+import tf2_ros
+import tf2_geometry_msgs
+
+from sensor_msgs.msg import CompressedImage, CameraInfo
+from geometry_msgs.msg import PointStamped
 from cv_bridge import CvBridge, CvBridgeError
 
 class ArucoMapper:
     def __init__(self):
         self.camera_name = rospy.get_param("~camera_name","csi_cam_0")
+        self.tf_buffer = tf2_ros.Buffer()
+        self.tf_listener = tf2_ros.TransformListener(self.tf_buffer)
         self.bridge = CvBridge()
 
         self.camera_matrix = None
@@ -26,6 +32,10 @@ class ArucoMapper:
         self.image_sub = rospy.Subscriber(self.camera_name+"/image_raw/compressed", CompressedImage, self.callback)
         self.image_pub = rospy.Publisher("/aruco_video/compressed", CompressedImage, queue_size=10)
 
+        self.waypoint_pub = rospy.Publisher("/aruco_waypoints", PointStamped, queue_size=10)
+
+
+
         self.aruco_dicts = [
             aruco.Dictionary_get(aruco.DICT_4X4_50),
             aruco.Dictionary_get(aruco.DICT_5X5_100),
@@ -37,6 +47,7 @@ class ArucoMapper:
     def info_callback(self, msg):
         self.camera_matrix = np.array(msg.K).reshape(3, 3)
         self.dist_coeffs = np.array(msg.D).reshape(1, 5)
+
 
     def callback(self, data):
         if self.camera_matrix is None or self.dist_coeffs is None:
@@ -67,9 +78,31 @@ class ArucoMapper:
                     x_dist = tvecs[i][0][0]
                     y_dist = tvecs[i][0][1]
                     z_dist = tvecs[i][0][2]
-
                     print("Marker [{}]: is {:.2f}m left/right, {:.2f}m up/down, and {:.2f}m straight ahead!".format(
-                    ids[i][0], x_dist, y_dist, z_dist))
+                        ids[i][0], x_dist, y_dist, z_dist))
+
+                    local_point = PointStamped()
+                    local_point.header.stamp = rospy.Time(0)
+                    local_point.header.frame_id = self.camera_name
+
+                    local_point.point.x = tvecs[i][0][2] # Forward
+                    local_point.point.y = -tvecs[i][0][0] # Left
+                    local_point.point.z = -tvecs[i][0][1] # Up
+
+
+                    try:
+                        # Transform to global 'map' frame
+                        global_point = self.tf_buffer.transform(local_point, "map", rospy.Duration(0.1))
+
+                        # Store the ID in the frame_id so the saver script knows which marker this is
+                        global_point.header.frame_id = str(ids[i][0])
+
+                        # Publish the transformed point to /aruco_waypoints
+                        self.waypoint_pub.publish(global_point)
+
+                    except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
+                        # If the map isn't running yet or TF fails, it skips silently so the node doesn't crash
+                        pass
 
         cv.imshow("ArUco Scanner", img)
         cv.waitKey(3)
