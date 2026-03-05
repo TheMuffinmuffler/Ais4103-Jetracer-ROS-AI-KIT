@@ -1,3 +1,4 @@
 add_subdirectory(hello_world)
 add_subdirectory(map_reader)
 add_subdirectory(graph_planner)
+add_subdirectory(grid_planner)
