@@ -7,3 +7,4 @@
 subdirs("hello_world")
 subdirs("map_reader")
 subdirs("graph_planner")
+subdirs("grid_planner")

@@ -896,6 +896,19 @@ graph_planner/fast:
 .PHONY : graph_planner/fast
 
 #=============================================================================
+# Target rules for targets named grid_planner
+
+# Build rule for target.
+grid_planner: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 grid_planner
+.PHONY : grid_planner
+
+# fast build rule for target.
+grid_planner/fast:
+	$(MAKE) -f ris/src/grid_planner/CMakeFiles/grid_planner.dir/build.make ris/src/grid_planner/CMakeFiles/grid_planner.dir/build
+.PHONY : grid_planner/fast
+
+#=============================================================================
 # Target rules for targets named sensor_msgs_generate_messages_eus
 
 # Build rule for target.
@@ -1246,6 +1259,19 @@ actionlib_generate_messages_py/fast:
 	$(MAKE) -f jetracer_ros/CMakeFiles/actionlib_generate_messages_py.dir/build.make jetracer_ros/CMakeFiles/actionlib_generate_messages_py.dir/build
 .PHONY : actionlib_generate_messages_py/fast
 
+#=============================================================================
+# Target rules for targets named smart_slam_node
+
+# Build rule for target.
+smart_slam_node: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 smart_slam_node
+.PHONY : smart_slam_node
+
+# fast build rule for target.
+smart_slam_node/fast:
+	$(MAKE) -f slam/CMakeFiles/smart_slam_node.dir/build.make slam/CMakeFiles/smart_slam_node.dir/build
+.PHONY : smart_slam_node/fast
+
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -1315,6 +1341,7 @@ help:
 	@echo "... hello_world"
 	@echo "... map_reader"
 	@echo "... graph_planner"
+	@echo "... grid_planner"
 	@echo "... sensor_msgs_generate_messages_eus"
 	@echo "... sensor_msgs_generate_messages_lisp"
 	@echo "... sensor_msgs_generate_messages_nodejs"
@@ -1342,6 +1369,7 @@ help:
 	@echo "... actionlib_generate_messages_nodejs"
 	@echo "... dynamic_reconfigure_gencfg"
 	@echo "... actionlib_generate_messages_py"
+	@echo "... smart_slam_node"
 .PHONY : help
 
 

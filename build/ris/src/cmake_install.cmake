@@ -42,6 +42,7 @@ if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   include("/home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/build/ris/src/hello_world/cmake_install.cmake")
   include("/home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/build/ris/src/map_reader/cmake_install.cmake")
   include("/home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/build/ris/src/graph_planner/cmake_install.cmake")
+  include("/home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/build/ris/src/grid_planner/cmake_install.cmake")
 
 endif()
 

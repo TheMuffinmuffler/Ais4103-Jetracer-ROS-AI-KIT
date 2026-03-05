@@ -136,6 +136,7 @@ if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   include("/home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/build/ris/cmake_install.cmake")
   include("/home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/build/my_camera_utils/cmake_install.cmake")
   include("/home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/build/jetracer_ros/cmake_install.cmake")
+  include("/home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/build/slam/cmake_install.cmake")
 
 endif()
 

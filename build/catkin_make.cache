@@ -1,2 +1,2 @@
-jetbot_pro:jetracer_ros:my_camera_utils:ris:ris_msgs
+jetbot_pro:jetracer_ros:my_camera_utils:ris:ris_msgs:slam
 -DCATKIN_DEVEL_PREFIX=/home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/devel -DCMAKE_INSTALL_PREFIX=/home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/install -G Unix Makefiles
