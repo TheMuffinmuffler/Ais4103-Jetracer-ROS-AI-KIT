@@ -7,4 +7,8 @@
 # new environment variables
 
 # modified environment variables
-export PWD='/home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/build'
+export LD_LIBRARY_PATH='/opt/ros/melodic/lib'
+export PKG_CONFIG_PATH='/opt/ros/melodic/lib/pkgconfig'
+export PWD='/home/jetson/catkin_ws/build'
+export PYTHONPATH='/opt/ros/melodic/lib/python2.7/dist-packages'
+export ROS_PACKAGE_PATH='/home/jetson/catkin_ws/src:/home/jetson/catkin_ws/src:/opt/ros/melodic/share'

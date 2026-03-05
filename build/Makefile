@@ -48,10 +48,10 @@ RM = /usr/bin/cmake -E remove -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/src
+CMAKE_SOURCE_DIR = /home/jetson/catkin_ws/src
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/build
+CMAKE_BINARY_DIR = /home/jetson/catkin_ws/build
 
 #=============================================================================
 # Targets provided globally by CMake.
@@ -137,9 +137,9 @@ test/fast: test
 
 # The main all target
 all: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/build/CMakeFiles /home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/build/CMakeFiles/progress.marks
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/jetson/catkin_ws/build/CMakeFiles /home/jetson/catkin_ws/build/CMakeFiles/progress.marks
 	$(MAKE) -f CMakeFiles/Makefile2 all
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/jetson/Desktop/Ais4103-Jetracer-ROS-AI-KIT/build/CMakeFiles 0
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/jetson/catkin_ws/build/CMakeFiles 0
 .PHONY : all
 
 # The main clean target
@@ -402,32 +402,6 @@ std_msgs_generate_messages_cpp/fast:
 .PHONY : std_msgs_generate_messages_cpp/fast
 
 #=============================================================================
-# Target rules for targets named ris_msgs_genpy
-
-# Build rule for target.
-ris_msgs_genpy: cmake_check_build_system
-	$(MAKE) -f CMakeFiles/Makefile2 ris_msgs_genpy
-.PHONY : ris_msgs_genpy
-
-# fast build rule for target.
-ris_msgs_genpy/fast:
-	$(MAKE) -f ris_msgs/CMakeFiles/ris_msgs_genpy.dir/build.make ris_msgs/CMakeFiles/ris_msgs_genpy.dir/build
-.PHONY : ris_msgs_genpy/fast
-
-#=============================================================================
-# Target rules for targets named _ris_msgs_generate_messages_check_deps_Hello
-
-# Build rule for target.
-_ris_msgs_generate_messages_check_deps_Hello: cmake_check_build_system
-	$(MAKE) -f CMakeFiles/Makefile2 _ris_msgs_generate_messages_check_deps_Hello
-.PHONY : _ris_msgs_generate_messages_check_deps_Hello
-
-# fast build rule for target.
-_ris_msgs_generate_messages_check_deps_Hello/fast:
-	$(MAKE) -f ris_msgs/CMakeFiles/_ris_msgs_generate_messages_check_deps_Hello.dir/build.make ris_msgs/CMakeFiles/_ris_msgs_generate_messages_check_deps_Hello.dir/build
-.PHONY : _ris_msgs_generate_messages_check_deps_Hello/fast
-
-#=============================================================================
 # Target rules for targets named ris_msgs_generate_messages_nodejs
 
 # Build rule for target.
@@ -452,6 +426,32 @@ _ris_msgs_generate_messages_check_deps_PingPong: cmake_check_build_system
 _ris_msgs_generate_messages_check_deps_PingPong/fast:
 	$(MAKE) -f ris_msgs/CMakeFiles/_ris_msgs_generate_messages_check_deps_PingPong.dir/build.make ris_msgs/CMakeFiles/_ris_msgs_generate_messages_check_deps_PingPong.dir/build
 .PHONY : _ris_msgs_generate_messages_check_deps_PingPong/fast
+
+#=============================================================================
+# Target rules for targets named ris_msgs_genpy
+
+# Build rule for target.
+ris_msgs_genpy: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 ris_msgs_genpy
+.PHONY : ris_msgs_genpy
+
+# fast build rule for target.
+ris_msgs_genpy/fast:
+	$(MAKE) -f ris_msgs/CMakeFiles/ris_msgs_genpy.dir/build.make ris_msgs/CMakeFiles/ris_msgs_genpy.dir/build
+.PHONY : ris_msgs_genpy/fast
+
+#=============================================================================
+# Target rules for targets named _ris_msgs_generate_messages_check_deps_Hello
+
+# Build rule for target.
+_ris_msgs_generate_messages_check_deps_Hello: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 _ris_msgs_generate_messages_check_deps_Hello
+.PHONY : _ris_msgs_generate_messages_check_deps_Hello
+
+# fast build rule for target.
+_ris_msgs_generate_messages_check_deps_Hello/fast:
+	$(MAKE) -f ris_msgs/CMakeFiles/_ris_msgs_generate_messages_check_deps_Hello.dir/build.make ris_msgs/CMakeFiles/_ris_msgs_generate_messages_check_deps_Hello.dir/build
+.PHONY : _ris_msgs_generate_messages_check_deps_Hello/fast
 
 #=============================================================================
 # Target rules for targets named _catkin_empty_exported_target
@@ -1303,10 +1303,10 @@ help:
 	@echo "... std_msgs_generate_messages_lisp"
 	@echo "... ris_msgs_generate_messages"
 	@echo "... std_msgs_generate_messages_cpp"
-	@echo "... ris_msgs_genpy"
-	@echo "... _ris_msgs_generate_messages_check_deps_Hello"
 	@echo "... ris_msgs_generate_messages_nodejs"
 	@echo "... _ris_msgs_generate_messages_check_deps_PingPong"
+	@echo "... ris_msgs_genpy"
+	@echo "... _ris_msgs_generate_messages_check_deps_Hello"
 	@echo "... _catkin_empty_exported_target"
 	@echo "... ris_msgs_gencpp"
 	@echo "... ris_msgs_generate_messages_lisp"

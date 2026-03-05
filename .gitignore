@@ -1,5 +1,6 @@
-build/
-devel/
+build
+cmake-build-debug
+devel
 logs/
 .catkin_workspace
 install/
