@@ -19,6 +19,8 @@ class ArucoMapper:
         self.tf_buffer = tf2_ros.Buffer()
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer)
         self.bridge = CvBridge()
+        self.counter = 0
+        self.process_every_n_frames = 5 #Skipps every 5 frames
 
         self.camera_matrix = None
         self.dist_coeffs = None
@@ -29,7 +31,7 @@ class ArucoMapper:
 
         self.info_sub = rospy.Subscriber(self.camera_name+"/camera_info", CameraInfo, self.info_callback)
 
-        self.image_sub = rospy.Subscriber(self.camera_name+"/image_raw/compressed", CompressedImage, self.callback)
+        self.image_sub = rospy.Subscriber("/cv_video/compressed", CompressedImage, self.callback)
         self.image_pub = rospy.Publisher("/aruco_video/compressed", CompressedImage, queue_size=10)
 
         self.waypoint_pub = rospy.Publisher("/aruco_waypoints", PointStamped, queue_size=10)
@@ -50,67 +52,99 @@ class ArucoMapper:
 
 
     def callback(self, data):
-        if self.camera_matrix is None or self.dist_coeffs is None:
-            return
+        # Increment frame counter
+        self.counter += 1
+
         try:
+            # Decode the compressed image
             img = self.bridge.compressed_imgmsg_to_cv2(data, "bgr8")
         except CvBridgeError as e:
-            print(e)
+            rospy.logerr("CvBridge Error: {0}".format(e))
             return
 
-        gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+        # Only process ArUco logic every N frames
+        if self.counter >= self.process_every_n_frames:
+            self.counter = 0 # Reset counter
 
-    # Loop through every dictionary in our list ---
-        for current_dict in self.aruco_dicts:
-        # Notice we use 'current_dict' here instead of 'self.aruco_dict'
-            corners, ids, rejectedImgPoints = aruco.detectMarkers(gray, current_dict, parameters=self.aruco_params)
+            # Ensure we have camera calibration before trying to find poses
+            if self.camera_matrix is None or self.dist_coeffs is None:
+                rospy.logwarn_throttle(5, "Waiting for camera_info...")
+            else:
+                # Convert to grayscale for detection
+                if len(img.shape) == 3:
+                    gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+                else:
+                    gray = img
 
-            if ids is not None:
-                aruco.drawDetectedMarkers(img, corners, ids)
+                # Loop through dictionaries
+                for current_dict in self.aruco_dicts:
+                    corners, ids, rejectedImgPoints = aruco.detectMarkers(
+                        gray, current_dict, parameters=self.aruco_params)
 
-            # Calculate the 3D distance using your custom lens math!
-                rvecs, tvecs, _ = aruco.estimatePoseSingleMarkers(
-                    corners, self.marker_size, self.camera_matrix, self.dist_coeffs)
+                    # CRITICAL FIX: Ensure ids actually contains markers before processing and breaking!
+                    if ids is not None and len(ids) > 0:
 
-                for i in range(len(ids)):
-                    aruco.drawAxis(img, self.camera_matrix, self.dist_coeffs, rvecs[i], tvecs[i], self.marker_size)
+                        # Draw visual markers on the color image
+                        aruco.drawDetectedMarkers(img, corners, ids)
 
-                    x_dist = tvecs[i][0][0]
-                    y_dist = tvecs[i][0][1]
-                    z_dist = tvecs[i][0][2]
-                    print("Marker [{}]: is {:.2f}m left/right, {:.2f}m up/down, and {:.2f}m straight ahead!".format(
-                        ids[i][0], x_dist, y_dist, z_dist))
+                        # Estimate pose (3D position/rotation)
+                        rvecs, tvecs, _ = aruco.estimatePoseSingleMarkers(
+                            corners, self.marker_size, self.camera_matrix, self.dist_coeffs)
 
-                    local_point = PointStamped()
-                    local_point.header.stamp = rospy.Time(0)
-                    local_point.header.frame_id = self.camera_name
+                        for i in range(len(ids)):
+                            # Draw the 3D axes
+                            aruco.drawAxis(img, self.camera_matrix, self.dist_coeffs,
+                                           rvecs[i], tvecs[i], self.marker_size)
 
-                    local_point.point.x = tvecs[i][0][2] # Forward
-                    local_point.point.y = -tvecs[i][0][0] # Left
-                    local_point.point.z = -tvecs[i][0][1] # Up
+                            # Extract translation vectors
+                            x_dist = tvecs[i][0][0]
+                            y_dist = tvecs[i][0][1]
+                            z_dist = tvecs[i][0][2]
 
+                            # ROS-FRIENDLY PRINT: This forces the terminal to update immediately
+                            rospy.loginfo("Marker [%s]: is %.2fm left/right, %.2fm up/down, and %.2fm straight ahead!",
+                                          str(ids[i][0]), x_dist, y_dist, z_dist)
 
-                    try:
-                        # Transform to global 'map' frame
-                        global_point = self.tf_buffer.transform(local_point, "map", rospy.Duration(0.1))
+                            # Prepare point for TF transformation
+                            local_point = PointStamped()
+                            local_point.header.stamp = rospy.Time(0)
+                            local_point.header.frame_id = self.camera_name
 
-                        # Store the ID in the frame_id so the saver script knows which marker this is
-                        global_point.header.frame_id = str(ids[i][0])
+                            # Coordinate swap based on your lens math
+                            local_point.point.x = z_dist  # Forward
+                            local_point.point.y = -x_dist # Left
+                            local_point.point.z = -y_dist # Up
 
-                        # Publish the transformed point to /aruco_waypoints
-                        self.waypoint_pub.publish(global_point)
+                            try:
+                                # Transform to global 'map' frame
+                                global_point = self.tf_buffer.transform(local_point, "map", rospy.Duration(0.1))
 
-                    except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
-                        # If the map isn't running yet or TF fails, it skips silently so the node doesn't crash
-                        pass
+                                # Use marker ID as the frame name for the saver
+                                global_point.header.frame_id = str(ids[i][0])
 
+                                # Publish the result
+                                self.waypoint_pub.publish(global_point)
+
+                            except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
+                                # WARN INSTEAD OF PASSING
+                                rospy.logwarn_throttle(5, "No map transform found! Publishing raw camera coordinates. Error: {}".format(e))
+
+                                # Fallback: Publish raw camera coords so the saver still works
+                                local_point.header.frame_id = str(ids[i][0])
+                                self.waypoint_pub.publish(local_point)
+
+                        # We ACTUALLY found a marker, so now it is safe to stop checking other dictionaries
+                        break
+
+                        # --- Visuals and Publishing ---
         cv.imshow("ArUco Scanner", img)
-        cv.waitKey(3)
+        cv.waitKey(1)
 
         try:
+            # Publish the image
             self.image_pub.publish(self.bridge.cv2_to_compressed_imgmsg(img))
         except CvBridgeError as e:
-            print(e)
+            rospy.logerr("CvBridge Publish Error: {0}".format(e))
 
 def main(args):
     rospy.init_node("aruco_mapper", anonymous=True)
