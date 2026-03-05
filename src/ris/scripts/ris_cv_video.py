@@ -33,7 +33,7 @@ class image_converter:
         cv.waitKey(3)
 
         try:
-            self.image_pub.publish(self.bridge.cv2_to_compressed_imgmsg(gray))
+            self.image_pub.publish(self.bridge.cv2_to_compressed_imgmsg(img))
         except CvBridgeError as e:
             print(e)
 

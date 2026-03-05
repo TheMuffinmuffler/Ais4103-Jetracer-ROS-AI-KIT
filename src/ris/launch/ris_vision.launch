@@ -1,0 +1,11 @@
+<launch>
+    <node name="ris_cv_video" pkg="ris" type="ris_cv_video.py" output="screen">
+        <param name="camera_name" value="csi_cam_0" />
+    </node>
+
+    <node name="aruco_mapper" pkg="ris" type="aruco_mapper.py" output="screen">
+        <param name="camera_name" value="csi_cam_0" />
+    </node>
+
+    <node name="waypoint_saver" pkg="ris" type="waypoint_saver.py" output="screen" />
+</launch>
