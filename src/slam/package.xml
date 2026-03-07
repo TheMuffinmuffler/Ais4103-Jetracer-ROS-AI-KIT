@@ -2,7 +2,7 @@
 <package format="2">
   <name>slam_pkg</name>
   <version>0.0.0</version>
-  <description>JetRacer SLAM pipeline with automatic map saving</description>
+  <description>SLAM with auto stop and auto map saving</description>
 
   <maintainer email="jetson@todo.todo">jetson</maintainer>
   <license>MIT</license>
@@ -12,7 +12,6 @@
   <depend>roscpp</depend>
   <depend>nav_msgs</depend>
   <depend>geometry_msgs</depend>
-  <depend>tf</depend>
 
   <exec_depend>map_server</exec_depend>
   <exec_depend>hector_mapping</exec_depend>

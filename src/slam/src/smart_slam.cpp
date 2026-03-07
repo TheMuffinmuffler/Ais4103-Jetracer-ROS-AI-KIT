@@ -9,30 +9,23 @@
 static const double MIN_RUNTIME_SECONDS = 20.0;
 static const double STILL_SECONDS = 8.0;
 static const double CHECK_PERIOD = 1.0;
-
 static const double POS_EPS = 0.02;
 static const double YAW_EPS = 0.05;
-
 static const int STABLE_CELL_THRESHOLD = 20;
-static const int BIG_CHANGE_THRESHOLD = 80;
+static const int BIG_CHANGE_THRESHOLD  = 80;
 static const int REQUIRED_STABLE_COUNT = 8;
 
 ros::Time start_time;
 ros::Time last_move_time;
-
 bool saved = false;
-
 bool have_pose = false;
 geometry_msgs::PoseStamped latest_pose;
 geometry_msgs::PoseStamped prev_pose_for_motion;
-
 bool have_map = false;
 bool new_map_since_last_check = false;
 nav_msgs::OccupancyGrid latest_map;
-
 bool have_eval_map = false;
 nav_msgs::OccupancyGrid eval_map;
-
 int stable_count = 0;
 
 double yawFromQuaternion(const geometry_msgs::Quaternion& q)
@@ -52,19 +45,12 @@ double normalizeAngle(double a)
 int countChangedCells(const nav_msgs::OccupancyGrid& a,
                       const nav_msgs::OccupancyGrid& b)
 {
-    if (a.info.width != b.info.width || a.info.height != b.info.height) {
-        return 999999999;
-    }
-
-    if (a.data.size() != b.data.size()) {
-        return 999999999;
-    }
+    if (a.info.width != b.info.width || a.info.height != b.info.height) return 999999999;
+    if (a.data.size() != b.data.size()) return 999999999;
 
     int changed = 0;
     for (size_t i = 0; i < a.data.size(); i++) {
-        if (a.data[i] != b.data[i]) {
-            changed++;
-        }
+        if (a.data[i] != b.data[i]) changed++;
     }
     return changed;
 }
@@ -157,49 +143,26 @@ void timerCallback(const ros::TimerEvent&)
     }
 
     int changed_cells = 0;
-    bool used_new_map = false;
 
     if (new_map_since_last_check) {
         changed_cells = countChangedCells(latest_map, eval_map);
         eval_map = latest_map;
         new_map_since_last_check = false;
-        used_new_map = true;
     } else {
         changed_cells = 0;
-        used_new_map = false;
     }
 
     if (changed_cells <= STABLE_CELL_THRESHOLD) {
         stable_count++;
-        ROS_INFO("[smart_slam] Stable check: changed_cells=%d stable_count=%d still_time=%.1f runtime=%.1f map_update=%s",
-                 changed_cells, stable_count, still_time, runtime, used_new_map ? "new_map" : "no_new_map");
     } else if (changed_cells <= BIG_CHANGE_THRESHOLD) {
         if (stable_count > 0) stable_count--;
-        ROS_INFO("[smart_slam] Minor change: changed_cells=%d stable_count=%d still_time=%.1f runtime=%.1f",
-                 changed_cells, stable_count, still_time, runtime);
     } else {
         stable_count = 0;
-        ROS_INFO("[smart_slam] Big change: changed_cells=%d stable_count reset still_time=%.1f runtime=%.1f",
-                 changed_cells, still_time, runtime);
     }
 
-    if (runtime < MIN_RUNTIME_SECONDS) {
-        ROS_INFO("[smart_slam] Not saving yet: runtime %.1f < %.1f",
-                 runtime, MIN_RUNTIME_SECONDS);
-        return;
-    }
-
-    if (still_time < STILL_SECONDS) {
-        ROS_INFO("[smart_slam] Not saving yet: still_time %.1f < %.1f",
-                 still_time, STILL_SECONDS);
-        return;
-    }
-
-    if (stable_count < REQUIRED_STABLE_COUNT) {
-        ROS_INFO("[smart_slam] Not saving yet: stable_count %d < %d",
-                 stable_count, REQUIRED_STABLE_COUNT);
-        return;
-    }
+    if (runtime < MIN_RUNTIME_SECONDS) return;
+    if (still_time < STILL_SECONDS) return;
+    if (stable_count < REQUIRED_STABLE_COUNT) return;
 
     ROS_WARN("[smart_slam] Stop condition met: runtime=%.1fs still=%.1fs stable_count=%d. Saving map...",
              runtime, still_time, stable_count);
@@ -221,7 +184,6 @@ int main(int argc, char** argv)
 
     ros::Subscriber map_sub  = nh.subscribe("/map", 1, mapCallback);
     ros::Subscriber pose_sub = nh.subscribe("/slam_out_pose", 20, poseCallback);
-
     ros::Timer timer = nh.createTimer(ros::Duration(CHECK_PERIOD), timerCallback);
 
     ros::spin();
