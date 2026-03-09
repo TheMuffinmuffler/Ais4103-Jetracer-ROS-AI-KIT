@@ -55,17 +55,12 @@ int countChangedCells(const nav_msgs::OccupancyGrid& a,
     return changed;
 }
 
+
 void saveMap()
 {
     const char* home = std::getenv("HOME");
     std::string dir = std::string(home ? home : "/tmp") + "/maps";
-
-    char timebuf[64];
-    std::time_t t = std::time(nullptr);
-    std::tm* tm_info = std::localtime(&t);
-    std::strftime(timebuf, sizeof(timebuf), "%Y%m%d_%H%M%S", tm_info);
-
-    std::string file = dir + "/final_map_" + std::string(timebuf);
+    std::string file = dir + "/final_map_best";
 
     std::string cmd1 = "mkdir -p " + dir;
     std::string cmd2 = "rosrun map_server map_saver -f " + file;
