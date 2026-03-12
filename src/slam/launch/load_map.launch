@@ -1,0 +1,16 @@
+<launch>
+  <arg name="map_file" default="$(env HOME)/maps/final_map_best.yaml"/>
+  <arg name="serial_port" default="/dev/ttyACM1"/>
+  <arg name="serial_baudrate" default="115200"/>
+
+  <node pkg="map_server" type="map_server" name="map_server"
+        args="$(arg map_file)" output="screen"/>
+
+  <include file="$(find rplidar_ros)/launch/rplidar.launch">
+    <arg name="serial_port" value="$(arg serial_port)"/>
+    <arg name="serial_baudrate" value="$(arg serial_baudrate)"/>
+  </include>
+
+  <node pkg="tf" type="static_transform_publisher" name="tf_base_to_laser"
+        args="0.20 0.0 0.10 0 0 0 base_link laser 50" />
+</launch>
