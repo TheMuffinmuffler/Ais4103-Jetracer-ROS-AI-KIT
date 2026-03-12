@@ -96,6 +96,7 @@ find_package(catkin REQUIRED COMPONENTS
 generate_dynamic_reconfigure_options(
    cfg/color.cfg
    cfg/LineFollow.cfg
+   cfg/jetracer.cfg
 )
 
 ###################################
@@ -209,3 +210,7 @@ include_directories(
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
+
+add_executable(jetracer src/jetracer.cpp)
+add_dependencies(jetracer ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(jetracer ${catkin_LIBRARIES})
