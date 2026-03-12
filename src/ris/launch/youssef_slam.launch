@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<launch>
+  <param name="use_sim_time" value="false"/>
+
+  <include file="$(find jetracer)/launch/jetracer.launch" />
+
+  <!-- LiDAR only -->
+  <include file="$(find jetracer)/launch/lidar.launch" />
+  <!-- Gmapping only -->
+  <include file="$(find jetracer)/launch/gmapping.launch" />
+
+  <node pkg="ris" type="youssef_slam" name="youssef_slam" output="screen">
+    <param name="map_topic" value="/map"/>
+    <param name="robot_map_dir" value="/home/jetson/catkin_ws/src/Ais4103-Jetracer-ROS-AI-KIT/src/jetracer_ros/maps"/>
+    <param name="robot_map_name" value="mymap"/>
+    <param name="laptop_map_dir" value="/home/jetson/laptop_slam_maps"/>
+    <param name="laptop_map_name" value="mymap"/>
+    <param name="check_period_sec" value="2.0"/>
+    <param name="stable_seconds_before_save" value="8.0"/>
+    <param name="changed_cells_threshold" value="20"/>
+    <param name="gmapping_node_name" value="/slam_gmapping"/>
+    <param name="stop_robot_before_save" value="true"/>
+  </node>
+</launch>
