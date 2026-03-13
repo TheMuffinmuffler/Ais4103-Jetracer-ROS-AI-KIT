@@ -2,11 +2,7 @@
 <launch>
   <param name="use_sim_time" value="false"/>
 
-  <include file="$(find jetracer)/launch/jetracer.launch" />
-
-  <!-- LiDAR only -->
-  <include file="$(find jetracer)/launch/lidar.launch" />
-  <!-- Gmapping only -->
+  <!-- Run gmapping only -->
   <include file="$(find jetracer)/launch/gmapping.launch" />
 
   <node pkg="ris" type="youssef_slam" name="youssef_slam" output="screen">
