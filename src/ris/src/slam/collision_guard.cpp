@@ -1,7 +1,6 @@
 #include <ros/ros.h>
 #include <sensor_msgs/LaserScan.h>
 #include <geometry_msgs/Twist.h>
-
 #include <cmath>
 #include <limits>
 #include <string>
@@ -12,6 +11,7 @@ public:
     CollisionGuard()
         : nh_(), pnh_("~"),
           has_scan_(false),
+          has_raw_cmd_(false),
           block_until_(0.0),
           watchdog_active_(false)
     {
@@ -19,25 +19,30 @@ public:
         pnh_.param("input_cmd_topic", input_cmd_topic_, std::string("/cmd_vel_raw"));
         pnh_.param("output_cmd_topic", output_cmd_topic_, std::string("/cmd_vel"));
 
-        pnh_.param("front_angle_deg", front_angle_deg_, 18.0);
-        pnh_.param("stop_distance", stop_distance_, 0.28);
+        pnh_.param("front_angle_deg", front_angle_deg_, 25.0);
+        pnh_.param("stop_distance", stop_distance_, 0.40);
         pnh_.param("progress_check_distance", progress_check_distance_, 1.20);
-        pnh_.param("progress_timeout_sec", progress_timeout_sec_, 1.5);
-        pnh_.param("progress_epsilon", progress_epsilon_, 0.03);
+        pnh_.param("progress_timeout_sec", progress_timeout_sec_, 1.0);
+        pnh_.param("progress_epsilon", progress_epsilon_, 0.04);
         pnh_.param("cooldown_sec", cooldown_sec_, 1.0);
         pnh_.param("min_forward_cmd", min_forward_cmd_, 0.03);
         pnh_.param("max_turn_for_progress_check", max_turn_for_progress_check_, 0.25);
         pnh_.param("allow_turning_when_blocked", allow_turning_when_blocked_, true);
+        pnh_.param("publish_rate_hz", publish_rate_hz_, 20.0);
 
         scan_sub_ = nh_.subscribe(scan_topic_, 1, &CollisionGuard::scanCallback, this);
         cmd_sub_ = nh_.subscribe(input_cmd_topic_, 10, &CollisionGuard::cmdCallback, this);
         cmd_pub_ = nh_.advertise<geometry_msgs::Twist>(output_cmd_topic_, 10);
 
+        timer_ = nh_.createTimer(ros::Duration(1.0 / publish_rate_hz_), &CollisionGuard::timerCallback, this);
+
         ROS_INFO("collision_guard started.");
         ROS_INFO_STREAM("scan_topic: " << scan_topic_);
         ROS_INFO_STREAM("input_cmd_topic: " << input_cmd_topic_);
         ROS_INFO_STREAM("output_cmd_topic: " << output_cmd_topic_);
+        ROS_INFO_STREAM("front_angle_deg: " << front_angle_deg_);
         ROS_INFO_STREAM("stop_distance: " << stop_distance_);
+        ROS_INFO_STREAM("publish_rate_hz: " << publish_rate_hz_);
     }
 
 private:
@@ -45,6 +50,12 @@ private:
     {
         latest_scan_ = *msg;
         has_scan_ = true;
+    }
+
+    void cmdCallback(const geometry_msgs::Twist::ConstPtr& msg)
+    {
+        latest_raw_cmd_ = *msg;
+        has_raw_cmd_ = true;
     }
 
     double getFrontMinRange() const
@@ -57,12 +68,12 @@ private:
 
         for (size_t i = 0; i < latest_scan_.ranges.size(); ++i)
         {
-            double angle = latest_scan_.angle_min + static_cast<double>(i) * latest_scan_.angle_increment;
+            const double angle = latest_scan_.angle_min + static_cast<double>(i) * latest_scan_.angle_increment;
 
             if (std::fabs(angle) > front_angle_rad)
                 continue;
 
-            double r = latest_scan_.ranges[i];
+            const double r = latest_scan_.ranges[i];
 
             if (std::isnan(r) || std::isinf(r))
                 continue;
@@ -91,7 +102,7 @@ private:
 
     bool shouldHardStop(double front_range, const geometry_msgs::Twist& cmd) const
     {
-        return (cmd.linear.x > min_forward_cmd_) && (front_range < stop_distance_);
+        return (cmd.linear.x > min_forward_cmd_) && std::isfinite(front_range) && (front_range < stop_distance_);
     }
 
     bool shouldTriggerProgressStop(double front_range, const geometry_msgs::Twist& cmd)
@@ -114,13 +125,14 @@ private:
             return false;
         }
 
-        double elapsed = (ros::Time::now() - watchdog_start_time_).toSec();
-        double progress = std::fabs(front_range - watchdog_reference_range_);
+        const double elapsed = (ros::Time::now() - watchdog_start_time_).toSec();
+        const double progress = std::fabs(front_range - watchdog_reference_range_);
 
         if (elapsed >= progress_timeout_sec_ && progress < progress_epsilon_)
         {
-            ROS_WARN_STREAM("collision_guard: forward command but little/no laser progress detected. "
-                            << "front_range=" << front_range << ", progress=" << progress
+            ROS_WARN_STREAM("collision_guard: no meaningful forward progress detected. "
+                            << "front_range=" << front_range
+                            << ", progress=" << progress
                             << ", elapsed=" << elapsed);
             resetWatchdog();
             return true;
@@ -132,8 +144,8 @@ private:
     geometry_msgs::Twist makeSafeCmd(const geometry_msgs::Twist& raw_cmd)
     {
         geometry_msgs::Twist safe_cmd = raw_cmd;
-        double front_range = getFrontMinRange();
-        ros::Time now = ros::Time::now();
+        const double front_range = getFrontMinRange();
+        const ros::Time now = ros::Time::now();
 
         if (now.toSec() < block_until_)
         {
@@ -148,7 +160,7 @@ private:
 
         if (shouldHardStop(front_range, raw_cmd))
         {
-            ROS_WARN_STREAM("collision_guard: obstacle too close in front. front_range=" << front_range
+            ROS_WARN_STREAM("collision_guard: obstacle too close. front_range=" << front_range
                             << " < stop_distance=" << stop_distance_);
 
             safe_cmd.linear.x = 0.0;
@@ -162,7 +174,7 @@ private:
 
         if (shouldTriggerProgressStop(front_range, raw_cmd))
         {
-            ROS_WARN("collision_guard: robot appears stuck or making no real front progress. Stopping command.");
+            ROS_WARN("collision_guard: robot seems stuck / slipping. Stopping forward motion.");
 
             safe_cmd.linear.x = 0.0;
             if (!allow_turning_when_blocked_)
@@ -178,9 +190,13 @@ private:
         return safe_cmd;
     }
 
-    void cmdCallback(const geometry_msgs::Twist::ConstPtr& msg)
+    void timerCallback(const ros::TimerEvent&)
     {
-        geometry_msgs::Twist safe_cmd = makeSafeCmd(*msg);
+        geometry_msgs::Twist raw_cmd;
+        if (has_raw_cmd_)
+            raw_cmd = latest_raw_cmd_;
+
+        geometry_msgs::Twist safe_cmd = makeSafeCmd(raw_cmd);
         cmd_pub_.publish(safe_cmd);
     }
 
@@ -191,9 +207,13 @@ private:
     ros::Subscriber scan_sub_;
     ros::Subscriber cmd_sub_;
     ros::Publisher cmd_pub_;
+    ros::Timer timer_;
 
     sensor_msgs::LaserScan latest_scan_;
+    geometry_msgs::Twist latest_raw_cmd_;
+
     bool has_scan_;
+    bool has_raw_cmd_;
 
     double block_until_;
 
@@ -210,6 +230,7 @@ private:
     double min_forward_cmd_;
     double max_turn_for_progress_check_;
     bool allow_turning_when_blocked_;
+    double publish_rate_hz_;
 
     std::string scan_topic_;
     std::string input_cmd_topic_;

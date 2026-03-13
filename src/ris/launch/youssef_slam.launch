@@ -8,28 +8,25 @@
     <param name="scan_topic" value="/scan"/>
     <param name="input_cmd_topic" value="/cmd_vel_raw"/>
     <param name="output_cmd_topic" value="/cmd_vel"/>
-
-    <param name="front_angle_deg" value="18.0"/>
-    <param name="stop_distance" value="0.28"/>
+    <param name="front_angle_deg" value="25.0"/>
+    <param name="stop_distance" value="0.40"/>
     <param name="progress_check_distance" value="1.20"/>
-    <param name="progress_timeout_sec" value="1.5"/>
-    <param name="progress_epsilon" value="0.03"/>
+    <param name="progress_timeout_sec" value="1.0"/>
+    <param name="progress_epsilon" value="0.04"/>
     <param name="cooldown_sec" value="1.0"/>
     <param name="min_forward_cmd" value="0.03"/>
     <param name="max_turn_for_progress_check" value="0.25"/>
     <param name="allow_turning_when_blocked" value="true"/>
+    <param name="publish_rate_hz" value="20.0"/>
   </node>
 
   <node pkg="ris" type="youssef_slam" name="youssef_slam" output="screen">
     <param name="map_topic" value="/map"/>
-
     <param name="laptop_map_dir" value="/home/jetson/maps"/>
     <param name="laptop_map_name" value="mymap"/>
-
     <param name="robot_map_dir" value="/home/jetson/maps"/>
     <param name="robot_user" value="jetson"/>
     <param name="robot_ip" value="192.168.0.144"/>
-
     <param name="check_period_sec" value="2.0"/>
     <param name="stable_seconds_before_save" value="8.0"/>
     <param name="changed_cells_threshold" value="20"/>
