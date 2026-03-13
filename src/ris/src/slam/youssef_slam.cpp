@@ -18,10 +18,10 @@ public:
           stable_time_acc_(0.0)
     {
         pnh_.param("map_topic", map_topic_, std::string("/map"));
-        pnh_.param("laptop_map_dir", laptop_map_dir_, std::string("/home/jetson/laptop_slam_maps"));
+        pnh_.param("laptop_map_dir", laptop_map_dir_, std::string("/home/jetson/maps"));
         pnh_.param("laptop_map_name", laptop_map_name_, std::string("mymap"));
         pnh_.param("robot_map_dir", robot_map_dir_,
-                   std::string("/home/jetson/catkin_ws/src/maps"));
+                   std::string("/home/jetson/maps"));
         pnh_.param("robot_map_name", robot_map_name_, std::string("mymap"));
         pnh_.param("check_period_sec", check_period_sec_, 2.0);
         pnh_.param("stable_seconds_before_save", stable_seconds_before_save_, 8.0);
