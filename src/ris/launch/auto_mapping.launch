@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<launch>
+    <include file="$(find ris)/launch/youssef_slam.launch" />
+
+    <node pkg="ris" type="auto_explorer" name="auto_explorer" output="screen">
+        <param name="scan_topic" value="/scan"/>
+        <param name="odom_topic" value="/odom"/>
+        <param name="cmd_topic" value="/cmd_vel"/>
+        <param name="exploration_done_topic" value="/exploration_done"/>
+        <param name="control_rate_hz" value="10.0"/>
+        <param name="front_clear_dist" value="0.90"/>
+        <param name="front_slow_dist" value="0.65"/>
+        <param name="front_block_dist" value="0.42"/>
+        <param name="emergency_dist" value="0.24"/>
+        <param name="side_open_dist" value="0.65"/>
+        <param name="wall_follow_target" value="0.55"/>
+        <param name="wall_follow_gain" value="1.2"/>
+        <param name="forward_speed_max" value="0.18"/>
+        <param name="forward_speed_min" value="0.08"/>
+        <param name="turn_speed_soft" value="0.45"/>
+        <param name="turn_speed_hard" value="0.75"/>
+        <param name="backup_speed" value="-0.10"/>
+        <param name="backup_duration_sec" value="0.7"/>
+        <param name="turn_duration_sec" value="0.9"/>
+        <param name="escape_turn_duration_sec" value="1.5"/>
+        <param name="stuck_timeout_sec" value="2.0"/>
+        <param name="stuck_min_progress" value="0.05"/>
+        <param name="max_recovery_attempts" value="4"/>
+        <param name="front_sector_deg" value="20.0"/>
+        <param name="side_sector_min_deg" value="20.0"/>
+        <param name="side_sector_max_deg" value="80.0"/>
+    </node>
+</launch>

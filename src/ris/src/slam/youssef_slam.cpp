@@ -1,7 +1,7 @@
 #include <ros/ros.h>
 #include <nav_msgs/OccupancyGrid.h>
 #include <geometry_msgs/Twist.h>
-
+#include <std_msgs/Bool.h>
 #include <cstdlib>
 #include <sstream>
 #include <string>
@@ -18,22 +18,23 @@ public:
           stable_time_acc_(0.0)
     {
         pnh_.param("map_topic", map_topic_, std::string("/map"));
-
         pnh_.param("laptop_map_dir", laptop_map_dir_, std::string("/home/jetson/maps"));
         pnh_.param("laptop_map_name", laptop_map_name_, std::string("mymap"));
-
         pnh_.param("robot_map_dir", robot_map_dir_, std::string("/home/jetson/maps"));
         pnh_.param("robot_user", robot_user_, std::string("jetson"));
         pnh_.param("robot_ip", robot_ip_, std::string("192.168.0.144"));
-
         pnh_.param("check_period_sec", check_period_sec_, 2.0);
-        pnh_.param("stable_seconds_before_save", stable_seconds_before_save_, 8.0);
+        pnh_.param("stable_seconds_before_save", stable_seconds_before_save_, 12.0);
         pnh_.param("changed_cells_threshold", changed_cells_threshold_, 20);
+        pnh_.param("min_exploration_time_sec", min_exploration_time_sec_, 90.0);
         pnh_.param("gmapping_node_name", gmapping_node_name_, std::string("/slam_gmapping"));
         pnh_.param("stop_robot_before_save", stop_robot_before_save_, true);
+        pnh_.param("exploration_done_topic", exploration_done_topic_, std::string("/exploration_done"));
+        pnh_.param("publish_exploration_done", publish_exploration_done_, true);
 
         map_sub_ = nh_.subscribe(map_topic_, 1, &YoussefSlam::mapCallback, this);
         cmd_pub_ = nh_.advertise<geometry_msgs::Twist>("/cmd_vel", 1, true);
+        exploration_done_pub_ = nh_.advertise<std_msgs::Bool>(exploration_done_topic_, 1, true);
 
         timer_ = nh_.createTimer(ros::Duration(check_period_sec_), &YoussefSlam::timerCallback, this);
 
@@ -41,9 +42,15 @@ public:
         mkdir_laptop_cmd << "mkdir -p " << laptop_map_dir_;
         std::system(mkdir_laptop_cmd.str().c_str());
 
+        start_time_ = ros::Time::now();
+
         ROS_INFO("youssef_slam started.");
         ROS_INFO_STREAM("Laptop maps will be saved to: " << laptop_map_dir_);
         ROS_INFO_STREAM("Robot copy target: " << robot_user_ << "@" << robot_ip_ << ":" << robot_map_dir_);
+        ROS_INFO_STREAM("changed_cells_threshold: " << changed_cells_threshold_);
+        ROS_INFO_STREAM("stable_seconds_before_save: " << stable_seconds_before_save_);
+        ROS_INFO_STREAM("min_exploration_time_sec: " << min_exploration_time_sec_);
+        ROS_INFO_STREAM("exploration_done_topic: " << exploration_done_topic_);
     }
 
 private:
@@ -77,6 +84,23 @@ private:
         }
     }
 
+    void publishExplorationDone()
+    {
+        if (!publish_exploration_done_)
+            return;
+
+        std_msgs::Bool msg;
+        msg.data = true;
+
+        for (int i = 0; i < 5; ++i)
+        {
+            exploration_done_pub_.publish(msg);
+            ros::Duration(0.05).sleep();
+        }
+
+        ROS_INFO_STREAM("Published exploration done on topic: " << exploration_done_topic_);
+    }
+
     bool saveLaptopMap()
     {
         std::stringstream ss;
@@ -96,7 +120,6 @@ private:
         std::stringstream pgm_path, yaml_path;
         pgm_path << laptop_map_dir_ << "/" << laptop_map_name_ << ".pgm";
         yaml_path << laptop_map_dir_ << "/" << laptop_map_name_ << ".yaml";
-
         std::stringstream check_cmd;
         check_cmd << "test -f " << pgm_path.str() << " && test -f " << yaml_path.str();
         int check_ret = std::system(check_cmd.str().c_str());
@@ -155,6 +178,11 @@ private:
         std::system(ss.str().c_str());
     }
 
+    bool minExplorationTimeReached() const
+    {
+        return (ros::Time::now() - start_time_).toSec() >= min_exploration_time_sec_;
+    }
+
     void finishSequence()
     {
         if (save_started_ || finished_)
@@ -162,8 +190,8 @@ private:
 
         save_started_ = true;
 
-        ROS_INFO("Map appears stable. Starting automatic save/copy sequence...");
-
+        ROS_INFO("Exploration completion condition satisfied. Starting save/copy/stop sequence...");
+        publishExplorationDone();
         if (stop_robot_before_save_)
             publishStop();
 
@@ -171,20 +199,14 @@ private:
         bool robot_copy_ok = false;
 
         if (laptop_ok)
-        {
             robot_copy_ok = copyMapToRobot();
-        }
         else
-        {
             ROS_WARN("Skipping robot copy because laptop save failed.");
-        }
 
         stopGmapping();
-
         finished_ = true;
-
         if (laptop_ok && robot_copy_ok)
-            ROS_INFO("Automatic SLAM save/copy/stop sequence finished successfully.");
+            ROS_INFO("Automatic exploration completion/save/copy/stop sequence finished successfully.");
         else if (laptop_ok)
             ROS_WARN("Map saved on laptop, but copy to robot failed.");
         else
@@ -207,36 +229,45 @@ private:
         }
 
         int changed = countChangedCells(previous_map_, latest_map_);
-        ROS_INFO_STREAM("Map stability check: changed_cells=" << changed);
+        double elapsed = (ros::Time::now() - start_time_).toSec();
+
+        ROS_INFO_STREAM("Map stability check: changed_cells=" << changed
+                        << ", elapsed=" << elapsed << " sec");
 
         if (changed <= changed_cells_threshold_)
         {
             stable_time_acc_ += check_period_sec_;
-            ROS_INFO_STREAM("Map stable for " << stable_time_acc_
-                            << " / " << stable_seconds_before_save_ << " sec");
+            ROS_INFO_STREAM("Map considered stable for "
+                            << stable_time_acc_ << " / "
+                            << stable_seconds_before_save_ << " sec");
         }
         else
         {
             stable_time_acc_ = 0.0;
-            ROS_INFO("Map still changing. Resetting stable timer.");
+            ROS_INFO("Map still changing significantly. Resetting stable timer.");
         }
 
         previous_map_ = latest_map_;
 
-        if (stable_time_acc_ >= stable_seconds_before_save_)
+        if (!minExplorationTimeReached())
         {
-            finishSequence();
+            ROS_INFO_STREAM("Minimum exploration time not reached yet: "
+                            << elapsed << " / "
+                            << min_exploration_time_sec_ << " sec");
+            return;
         }
+
+        if (stable_time_acc_ >= stable_seconds_before_save_)
+            finishSequence();
     }
 
 private:
     ros::NodeHandle nh_;
     ros::NodeHandle pnh_;
-
     ros::Subscriber map_sub_;
     ros::Publisher cmd_pub_;
+    ros::Publisher exploration_done_pub_;
     ros::Timer timer_;
-
     nav_msgs::OccupancyGrid latest_map_;
     nav_msgs::OccupancyGrid previous_map_;
 
@@ -248,18 +279,21 @@ private:
     double stable_time_acc_;
     double check_period_sec_;
     double stable_seconds_before_save_;
+    double min_exploration_time_sec_;
     int changed_cells_threshold_;
     bool stop_robot_before_save_;
+    bool publish_exploration_done_;
+
+    ros::Time start_time_;
 
     std::string map_topic_;
     std::string laptop_map_dir_;
     std::string laptop_map_name_;
-
     std::string robot_map_dir_;
     std::string robot_user_;
     std::string robot_ip_;
-
     std::string gmapping_node_name_;
+    std::string exploration_done_topic_;
 };
 
 int main(int argc, char** argv)

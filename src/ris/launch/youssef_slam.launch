@@ -1,6 +1,7 @@
 <?xml version="1.0"?>
 <launch>
   <param name="use_sim_time" value="false"/>
+
   <include file="$(find jetracer)/launch/gmapping.launch" />
 
   <node pkg="ris" type="youssef_slam" name="youssef_slam" output="screen">
@@ -11,9 +12,12 @@
     <param name="robot_user" value="jetson"/>
     <param name="robot_ip" value="192.168.0.144"/>
     <param name="check_period_sec" value="2.0"/>
-    <param name="stable_seconds_before_save" value="8.0"/>
     <param name="changed_cells_threshold" value="20"/>
+    <param name="stable_seconds_before_save" value="12.0"/>
+    <param name="min_exploration_time_sec" value="90.0"/>
     <param name="gmapping_node_name" value="/slam_gmapping"/>
     <param name="stop_robot_before_save" value="true"/>
+    <param name="exploration_done_topic" value="/exploration_done"/>
+    <param name="publish_exploration_done" value="true"/>
   </node>
 </launch>

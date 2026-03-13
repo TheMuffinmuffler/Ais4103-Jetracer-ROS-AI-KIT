@@ -16,6 +16,8 @@ find_package(catkin REQUIRED COMPONENTS
         std_msgs
         message_runtime
         nav_msgs
+        geometry_msgs
+        sensor_msgs
 )
 
 ## 2. Declare Include Directories (CRITICAL)
@@ -26,7 +28,7 @@ include_directories(
 
 ## 3. Catkin Package Configuration
 catkin_package(
-        CATKIN_DEPENDS roscpp ris_msgs std_msgs nav_msgs message_runtime
+        CATKIN_DEPENDS roscpp ris_msgs std_msgs nav_msgs message_runtime geometry_msgs sensor_msgs
 )
 
 ## 4. Traverse into the src folder
