@@ -2,14 +2,13 @@
 <launch>
   <param name="use_sim_time" value="false"/>
 
-  <!-- Run gmapping only -->
   <include file="$(find jetracer)/launch/gmapping.launch" />
 
   <node pkg="ris" type="youssef_slam" name="youssef_slam" output="screen">
     <param name="map_topic" value="/map"/>
-    <param name="robot_map_dir" value="/home/jetson/catkin_ws/src/Ais4103-Jetracer-ROS-AI-KIT/src/jetracer_ros/maps"/>
+    <param name="robot_map_dir" value="/home/jetson/maps"/>
     <param name="robot_map_name" value="mymap"/>
-    <param name="laptop_map_dir" value="/home/jetson/laptop_slam_maps"/>
+    <param name="laptop_map_dir" value="/home/jetson/maps"/>
     <param name="laptop_map_name" value="mymap"/>
     <param name="check_period_sec" value="2.0"/>
     <param name="stable_seconds_before_save" value="8.0"/>
