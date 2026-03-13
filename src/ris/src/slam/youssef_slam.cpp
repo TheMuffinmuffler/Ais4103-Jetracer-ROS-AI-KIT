@@ -18,11 +18,14 @@ public:
           stable_time_acc_(0.0)
     {
         pnh_.param("map_topic", map_topic_, std::string("/map"));
+
         pnh_.param("laptop_map_dir", laptop_map_dir_, std::string("/home/jetson/maps"));
         pnh_.param("laptop_map_name", laptop_map_name_, std::string("mymap"));
-        pnh_.param("robot_map_dir", robot_map_dir_,
-                   std::string("/home/jetson/maps"));
-        pnh_.param("robot_map_name", robot_map_name_, std::string("mymap"));
+
+        pnh_.param("robot_map_dir", robot_map_dir_, std::string("/home/jetson/maps"));
+        pnh_.param("robot_user", robot_user_, std::string("jetson"));
+        pnh_.param("robot_ip", robot_ip_, std::string("192.168.0.144"));
+
         pnh_.param("check_period_sec", check_period_sec_, 2.0);
         pnh_.param("stable_seconds_before_save", stable_seconds_before_save_, 8.0);
         pnh_.param("changed_cells_threshold", changed_cells_threshold_, 20);
@@ -34,17 +37,13 @@ public:
 
         timer_ = nh_.createTimer(ros::Duration(check_period_sec_), &YoussefSlam::timerCallback, this);
 
-        std::stringstream mkdir_robot_cmd;
-        mkdir_robot_cmd << "mkdir -p " << robot_map_dir_;
-        std::system(mkdir_robot_cmd.str().c_str());
-
         std::stringstream mkdir_laptop_cmd;
         mkdir_laptop_cmd << "mkdir -p " << laptop_map_dir_;
         std::system(mkdir_laptop_cmd.str().c_str());
 
         ROS_INFO("youssef_slam started.");
-        ROS_INFO_STREAM("Robot maps will be saved to: " << robot_map_dir_);
         ROS_INFO_STREAM("Laptop maps will be saved to: " << laptop_map_dir_);
+        ROS_INFO_STREAM("Robot copy target: " << robot_user_ << "@" << robot_ip_ << ":" << robot_map_dir_);
     }
 
 private:
@@ -78,26 +77,7 @@ private:
         }
     }
 
-    void saveRobotMap()
-    {
-        std::stringstream ss;
-        ss << "mkdir -p " << robot_map_dir_
-           << " && rosrun map_server map_saver -f "
-           << robot_map_dir_ << "/" << robot_map_name_;
-
-        ROS_INFO_STREAM("Saving robot map with command: " << ss.str());
-        int ret = std::system(ss.str().c_str());
-        if (ret != 0)
-        {
-            ROS_WARN_STREAM("Robot map save command returned non-zero code: " << ret);
-        }
-        else
-        {
-            ROS_INFO("Robot map saved successfully.");
-        }
-    }
-
-    void saveLaptopMap()
+    bool saveLaptopMap()
     {
         std::stringstream ss;
         ss << "mkdir -p " << laptop_map_dir_
@@ -106,14 +86,65 @@ private:
 
         ROS_INFO_STREAM("Saving laptop map with command: " << ss.str());
         int ret = std::system(ss.str().c_str());
+
         if (ret != 0)
         {
             ROS_WARN_STREAM("Laptop map save command returned non-zero code: " << ret);
+            return false;
         }
-        else
+
+        std::stringstream pgm_path, yaml_path;
+        pgm_path << laptop_map_dir_ << "/" << laptop_map_name_ << ".pgm";
+        yaml_path << laptop_map_dir_ << "/" << laptop_map_name_ << ".yaml";
+
+        std::stringstream check_cmd;
+        check_cmd << "test -f " << pgm_path.str() << " && test -f " << yaml_path.str();
+        int check_ret = std::system(check_cmd.str().c_str());
+
+        if (check_ret != 0)
         {
-            ROS_INFO("Laptop map saved successfully.");
+            ROS_WARN("Laptop map save finished, but .pgm or .yaml file not found.");
+            return false;
         }
+
+        ROS_INFO("Laptop map saved successfully.");
+        return true;
+    }
+
+    bool copyMapToRobot()
+    {
+        std::stringstream mkdir_remote_cmd;
+        mkdir_remote_cmd
+            << "ssh -o BatchMode=yes -o StrictHostKeyChecking=no "
+            << robot_user_ << "@" << robot_ip_
+            << " \"mkdir -p " << robot_map_dir_ << "\"";
+
+        ROS_INFO_STREAM("Ensuring robot map directory exists: " << mkdir_remote_cmd.str());
+        int mkdir_ret = std::system(mkdir_remote_cmd.str().c_str());
+        if (mkdir_ret != 0)
+        {
+            ROS_WARN_STREAM("Failed to create robot map directory. Return code: " << mkdir_ret);
+            return false;
+        }
+
+        std::stringstream scp_cmd;
+        scp_cmd
+            << "scp -o BatchMode=yes -o StrictHostKeyChecking=no "
+            << laptop_map_dir_ << "/" << laptop_map_name_ << ".pgm "
+            << laptop_map_dir_ << "/" << laptop_map_name_ << ".yaml "
+            << robot_user_ << "@" << robot_ip_ << ":" << robot_map_dir_ << "/";
+
+        ROS_INFO_STREAM("Copying map files to robot: " << scp_cmd.str());
+        int scp_ret = std::system(scp_cmd.str().c_str());
+
+        if (scp_ret != 0)
+        {
+            ROS_WARN_STREAM("Failed to copy map files to robot. Return code: " << scp_ret);
+            return false;
+        }
+
+        ROS_INFO("Map files copied successfully to robot.");
+        return true;
     }
 
     void stopGmapping()
@@ -131,17 +162,34 @@ private:
 
         save_started_ = true;
 
-        ROS_INFO("Map appears stable. Starting automatic save sequence...");
+        ROS_INFO("Map appears stable. Starting automatic save/copy sequence...");
 
         if (stop_robot_before_save_)
             publishStop();
 
-        saveRobotMap();
-        saveLaptopMap();
+        bool laptop_ok = saveLaptopMap();
+        bool robot_copy_ok = false;
+
+        if (laptop_ok)
+        {
+            robot_copy_ok = copyMapToRobot();
+        }
+        else
+        {
+            ROS_WARN("Skipping robot copy because laptop save failed.");
+        }
+
         stopGmapping();
 
         finished_ = true;
-        ROS_INFO("Automatic SLAM save/stop sequence finished.");
+
+        if (laptop_ok && robot_copy_ok)
+            ROS_INFO("Automatic SLAM save/copy/stop sequence finished successfully.");
+        else if (laptop_ok)
+            ROS_WARN("Map saved on laptop, but copy to robot failed.");
+        else
+            ROS_WARN("Map save failed on laptop, so robot copy was not completed.");
+
         ros::shutdown();
     }
 
@@ -206,8 +254,11 @@ private:
     std::string map_topic_;
     std::string laptop_map_dir_;
     std::string laptop_map_name_;
+
     std::string robot_map_dir_;
-    std::string robot_map_name_;
+    std::string robot_user_;
+    std::string robot_ip_;
+
     std::string gmapping_node_name_;
 };
 
