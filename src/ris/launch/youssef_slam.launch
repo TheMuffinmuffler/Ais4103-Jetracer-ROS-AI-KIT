@@ -1,24 +1,7 @@
 <?xml version="1.0"?>
 <launch>
   <param name="use_sim_time" value="false"/>
-
   <include file="$(find jetracer)/launch/gmapping.launch" />
-
-  <node pkg="ris" type="collision_guard" name="collision_guard" output="screen">
-    <param name="scan_topic" value="/scan"/>
-    <param name="input_cmd_topic" value="/cmd_vel_raw"/>
-    <param name="output_cmd_topic" value="/cmd_vel"/>
-    <param name="front_angle_deg" value="25.0"/>
-    <param name="stop_distance" value="0.40"/>
-    <param name="progress_check_distance" value="1.20"/>
-    <param name="progress_timeout_sec" value="1.0"/>
-    <param name="progress_epsilon" value="0.04"/>
-    <param name="cooldown_sec" value="1.0"/>
-    <param name="min_forward_cmd" value="0.03"/>
-    <param name="max_turn_for_progress_check" value="0.25"/>
-    <param name="allow_turning_when_blocked" value="true"/>
-    <param name="publish_rate_hz" value="20.0"/>
-  </node>
 
   <node pkg="ris" type="youssef_slam" name="youssef_slam" output="screen">
     <param name="map_topic" value="/map"/>
