@@ -7,27 +7,44 @@
         <param name="odom_topic" value="/odom"/>
         <param name="cmd_topic" value="/cmd_vel"/>
         <param name="exploration_done_topic" value="/exploration_done"/>
-        <param name="control_rate_hz" value="10.0"/>
-        <param name="front_clear_dist" value="0.90"/>
-        <param name="front_slow_dist" value="0.65"/>
-        <param name="front_block_dist" value="0.42"/>
-        <param name="emergency_dist" value="0.24"/>
-        <param name="side_open_dist" value="0.65"/>
-        <param name="wall_follow_target" value="0.55"/>
-        <param name="wall_follow_gain" value="1.2"/>
-        <param name="forward_speed_max" value="0.18"/>
-        <param name="forward_speed_min" value="0.08"/>
-        <param name="turn_speed_soft" value="0.45"/>
-        <param name="turn_speed_hard" value="0.75"/>
-        <param name="backup_speed" value="-0.10"/>
-        <param name="backup_duration_sec" value="0.7"/>
-        <param name="turn_duration_sec" value="0.9"/>
-        <param name="escape_turn_duration_sec" value="1.5"/>
-        <param name="stuck_timeout_sec" value="2.0"/>
-        <param name="stuck_min_progress" value="0.05"/>
-        <param name="max_recovery_attempts" value="4"/>
-        <param name="front_sector_deg" value="20.0"/>
+
+        <param name="control_rate_hz" value="12.0"/>
+
+        <param name="front_clear_dist" value="1.10"/>
+        <param name="front_slow_dist" value="0.90"/>
+        <param name="front_block_dist" value="0.65"/>
+        <param name="front_emergency_dist" value="0.40"/>
+
+        <param name="rear_block_dist" value="0.32"/>
+        <param name="rear_emergency_dist" value="0.24"/>
+
+        <param name="wall_follow_target" value="0.65"/>
+        <param name="wall_follow_gain" value="0.70"/>
+        <param name="steering_deadband" value="0.10"/>
+
+        <param name="forward_speed_max" value="0.10"/>
+        <param name="forward_speed_min" value="0.04"/>
+        <param name="turn_speed_soft" value="0.35"/>
+        <param name="turn_speed_hard" value="0.85"/>
+        <param name="backup_speed" value="-0.08"/>
+
+        <param name="backup_duration_sec" value="1.10"/>
+        <param name="turn_duration_sec" value="1.40"/>
+        <param name="escape_turn_duration_sec" value="2.20"/>
+        <param name="post_recovery_forward_cooldown_sec" value="1.40"/>
+
+        <param name="stuck_timeout_sec" value="1.00"/>
+        <param name="stuck_min_progress" value="0.025"/>
+        <param name="max_recovery_attempts" value="3"/>
+
+        <param name="front_sector_deg" value="45.0"/>
         <param name="side_sector_min_deg" value="20.0"/>
-        <param name="side_sector_max_deg" value="80.0"/>
+        <param name="side_sector_max_deg" value="95.0"/>
+        <param name="rear_sector_deg" value="40.0"/>
+
+        <param name="front_block_cycles_before_recovery" value="2"/>
+        <param name="front_emergency_cycles_before_recovery" value="1"/>
+        <param name="rear_block_cycles_before_stop_backup" value="1"/>
+        <param name="rear_emergency_cycles_before_stop_backup" value="1"/>
     </node>
 </launch>
