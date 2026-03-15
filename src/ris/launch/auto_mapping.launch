@@ -5,39 +5,45 @@
     <node pkg="ris" type="auto_explorer" name="auto_explorer" output="screen">
         <param name="scan_topic" value="/scan"/>
         <param name="odom_topic" value="/odom"/>
+        <param name="map_topic" value="/map"/>
         <param name="cmd_topic" value="/cmd_vel"/>
         <param name="exploration_done_topic" value="/exploration_done"/>
 
-        <param name="control_rate_hz" value="12.0"/>
+        <param name="map_frame" value="map"/>
+        <param name="base_frame" value="base_footprint"/>
 
-        <param name="front_clear_dist" value="1.20"/>
-        <param name="front_caution_dist" value="0.90"/>
-        <param name="front_block_dist" value="0.48"/>
-        <param name="front_emergency_dist" value="0.28"/>
+        <param name="control_rate_hz" value="10.0"/>
 
-        <param name="rear_block_dist" value="0.24"/>
-        <param name="rear_emergency_dist" value="0.16"/>
+        <param name="front_clear_dist" value="1.40"/>
+        <param name="front_caution_dist" value="1.00"/>
+        <param name="front_block_dist" value="0.55"/>
+        <param name="front_emergency_dist" value="0.32"/>
 
-        <param name="side_block_dist" value="0.22"/>
-        <param name="side_emergency_dist" value="0.14"/>
+        <param name="rear_clear_dist" value="0.65"/>
+        <param name="rear_block_dist" value="0.30"/>
+        <param name="rear_emergency_dist" value="0.20"/>
 
-        <param name="forward_speed_max" value="0.13"/>
-        <param name="forward_speed_min" value="0.045"/>
-        <param name="forward_speed_recovery" value="0.07"/>
-        <param name="corridor_speed_max" value="0.09"/>
-        <param name="reverse_speed" value="-0.085"/>
+        <param name="side_block_dist" value="0.25"/>
+        <param name="side_emergency_dist" value="0.16"/>
 
-        <param name="turn_speed_soft" value="0.38"/>
-        <param name="turn_speed_hard" value="0.82"/>
-        <param name="reverse_turn_speed" value="0.58"/>
+        <!-- raised speeds -->
+        <param name="forward_speed_max" value="0.34"/>
+        <param name="forward_speed_min" value="0.20"/>
+        <param name="forward_speed_recovery" value="0.24"/>
+        <param name="corridor_speed_max" value="0.24"/>
+        <param name="reverse_speed" value="-0.20"/>
 
-        <param name="reverse_duration_sec" value="0.75"/>
-        <param name="turn_duration_sec" value="1.00"/>
-        <param name="escape_turn_duration_sec" value="1.80"/>
-        <param name="post_recovery_guidance_sec" value="1.20"/>
+        <param name="turn_speed_soft" value="0.65"/>
+        <param name="turn_speed_hard" value="1.20"/>
+        <param name="reverse_turn_speed" value="0.95"/>
 
-        <param name="stuck_timeout_sec" value="1.20"/>
-        <param name="stuck_min_progress" value="0.025"/>
+        <param name="reverse_duration_sec" value="0.65"/>
+        <param name="turn_duration_sec" value="0.85"/>
+        <param name="escape_turn_duration_sec" value="1.60"/>
+        <param name="post_recovery_guidance_sec" value="1.00"/>
+
+        <param name="stuck_timeout_sec" value="1.00"/>
+        <param name="stuck_min_progress" value="0.040"/>
         <param name="max_recovery_attempts" value="3"/>
 
         <param name="front_sector_deg" value="35.0"/>
@@ -51,22 +57,43 @@
         <param name="rear_block_cycles_before_stop_reverse" value="1"/>
         <param name="rear_emergency_cycles_before_stop_reverse" value="1"/>
 
-        <param name="wall_follow_target" value="0.55"/>
-        <param name="wall_follow_gain" value="0.42"/>
-        <param name="obstacle_avoid_gain" value="0.90"/>
-        <param name="steering_deadband" value="0.06"/>
-        <param name="guidance_bias_strength" value="0.18"/>
+        <param name="steering_deadband" value="0.04"/>
+        <param name="guidance_bias_strength" value="0.10"/>
 
         <param name="corridor_width_threshold" value="1.30"/>
-        <param name="corridor_wall_presence_max" value="0.90"/>
-        <param name="corridor_center_gain" value="1.10"/>
+        <param name="corridor_wall_presence_max" value="0.95"/>
+        <param name="corridor_center_gain" value="1.15"/>
         <param name="corridor_heading_gain" value="0.50"/>
-        <param name="corridor_front_slow_dist" value="0.75"/>
+        <param name="corridor_front_slow_dist" value="0.80"/>
 
-        <param name="open_space_bias_gain" value="0.26"/>
-        <param name="turn_preference_hold_sec" value="1.50"/>
+        <param name="reverse_cooldown_sec" value="2.5"/>
+        <param name="max_reverse_chain" value="1"/>
 
-        <param name="reverse_cooldown_sec" value="3.00"/>
-        <param name="max_reverse_chain" value="2"/>
+        <!-- frontier -->
+        <param name="frontier_min_cluster_size" value="6"/>
+        <param name="frontier_robot_clearance_m" value="0.22"/>
+        <param name="frontier_goal_pullback_m" value="0.35"/>
+        <param name="frontier_reselect_period_sec" value="0.8"/>
+        <param name="frontier_size_weight" value="1.25"/>
+        <param name="frontier_distance_weight" value="0.95"/>
+        <param name="frontier_heading_weight" value="0.65"/>
+        <param name="frontier_visit_penalty_weight" value="1.2"/>
+        <param name="frontier_same_goal_bonus" value="0.35"/>
+
+        <!-- goal blacklist / failure -->
+        <param name="goal_reach_dist_m" value="0.35"/>
+        <param name="goal_progress_timeout_sec" value="3.0"/>
+        <param name="goal_progress_min_dist_m" value="0.12"/>
+        <param name="goal_fail_limit" value="2"/>
+        <param name="goal_blacklist_radius_m" value="0.60"/>
+        <param name="goal_blacklist_duration_sec" value="45.0"/>
+
+        <!-- local waypoint -->
+        <param name="waypoint_step_m" value="0.45"/>
+        <param name="waypoint_max_lookahead_m" value="1.20"/>
+
+        <!-- visit memory -->
+        <param name="visit_update_radius_m" value="0.22"/>
+        <param name="visit_penalty_cap" value="10.0"/>
     </node>
 </launch>
