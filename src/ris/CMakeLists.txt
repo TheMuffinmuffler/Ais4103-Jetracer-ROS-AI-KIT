@@ -3,6 +3,7 @@ project(ris)
 
 ## Set C++ Standard
 set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_VERBOSE_MAKEFILE ON)
 
 ## Add compile options
@@ -18,17 +19,28 @@ find_package(catkin REQUIRED COMPONENTS
         nav_msgs
         geometry_msgs
         sensor_msgs
+        tf2
+        tf2_ros
 )
 
-## 2. Declare Include Directories (CRITICAL)
-## This tells the compiler where to find ros/ros.h
+## 2. Declare Include Directories
 include_directories(
         ${catkin_INCLUDE_DIRS}
 )
 
 ## 3. Catkin Package Configuration
 catkin_package(
-        CATKIN_DEPENDS roscpp ris_msgs std_msgs nav_msgs message_runtime geometry_msgs sensor_msgs
+        CATKIN_DEPENDS
+        roscpp
+        roslib
+        ris_msgs
+        std_msgs
+        message_runtime
+        nav_msgs
+        geometry_msgs
+        sensor_msgs
+        tf2
+        tf2_ros
 )
 
 ## 4. Traverse into the src folder

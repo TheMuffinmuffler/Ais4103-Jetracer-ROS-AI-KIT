@@ -7,41 +7,66 @@
         <param name="odom_topic" value="/odom"/>
         <param name="cmd_topic" value="/cmd_vel"/>
         <param name="exploration_done_topic" value="/exploration_done"/>
+
         <param name="control_rate_hz" value="12.0"/>
-        <param name="front_clear_dist" value="1.10"/>
-        <param name="front_caution_dist" value="0.80"/>
-        <param name="front_block_dist" value="0.45"/>
+
+        <param name="front_clear_dist" value="1.20"/>
+        <param name="front_caution_dist" value="0.90"/>
+        <param name="front_block_dist" value="0.48"/>
         <param name="front_emergency_dist" value="0.28"/>
+
         <param name="rear_block_dist" value="0.24"/>
         <param name="rear_emergency_dist" value="0.16"/>
+
         <param name="side_block_dist" value="0.22"/>
         <param name="side_emergency_dist" value="0.14"/>
-        <param name="wall_follow_target" value="0.55"/>
-        <param name="wall_follow_gain" value="0.45"/>
-        <param name="obstacle_avoid_gain" value="0.85"/>
-        <param name="steering_deadband" value="0.08"/>
-        <param name="guidance_bias_strength" value="0.18"/>
-        <param name="forward_speed_max" value="0.12"/>
-        <param name="forward_speed_min" value="0.04"/>
-        <param name="forward_speed_recovery" value="0.06"/>
-        <param name="reverse_speed" value="-0.11"/>
-        <param name="turn_speed_soft" value="0.42"/>
-        <param name="turn_speed_hard" value="0.90"/>
-        <param name="reverse_turn_speed" value="0.60"/>
-        <param name="reverse_duration_sec" value="1.00"/>
-        <param name="turn_duration_sec" value="1.20"/>
-        <param name="escape_turn_duration_sec" value="2.00"/>
+
+        <param name="forward_speed_max" value="0.13"/>
+        <param name="forward_speed_min" value="0.045"/>
+        <param name="forward_speed_recovery" value="0.07"/>
+        <param name="corridor_speed_max" value="0.09"/>
+        <param name="reverse_speed" value="-0.085"/>
+
+        <param name="turn_speed_soft" value="0.38"/>
+        <param name="turn_speed_hard" value="0.82"/>
+        <param name="reverse_turn_speed" value="0.58"/>
+
+        <param name="reverse_duration_sec" value="0.75"/>
+        <param name="turn_duration_sec" value="1.00"/>
+        <param name="escape_turn_duration_sec" value="1.80"/>
         <param name="post_recovery_guidance_sec" value="1.20"/>
-        <param name="stuck_timeout_sec" value="1.00"/>
+
+        <param name="stuck_timeout_sec" value="1.20"/>
         <param name="stuck_min_progress" value="0.025"/>
         <param name="max_recovery_attempts" value="3"/>
-        <param name="front_sector_deg" value="45.0"/>
+
+        <param name="front_sector_deg" value="35.0"/>
+        <param name="front_wide_sector_deg" value="60.0"/>
         <param name="side_sector_min_deg" value="20.0"/>
         <param name="side_sector_max_deg" value="95.0"/>
         <param name="rear_sector_deg" value="35.0"/>
+
         <param name="front_block_cycles_before_recovery" value="2"/>
         <param name="front_emergency_cycles_before_recovery" value="1"/>
         <param name="rear_block_cycles_before_stop_reverse" value="1"/>
         <param name="rear_emergency_cycles_before_stop_reverse" value="1"/>
+
+        <param name="wall_follow_target" value="0.55"/>
+        <param name="wall_follow_gain" value="0.42"/>
+        <param name="obstacle_avoid_gain" value="0.90"/>
+        <param name="steering_deadband" value="0.06"/>
+        <param name="guidance_bias_strength" value="0.18"/>
+
+        <param name="corridor_width_threshold" value="1.30"/>
+        <param name="corridor_wall_presence_max" value="0.90"/>
+        <param name="corridor_center_gain" value="1.10"/>
+        <param name="corridor_heading_gain" value="0.50"/>
+        <param name="corridor_front_slow_dist" value="0.75"/>
+
+        <param name="open_space_bias_gain" value="0.26"/>
+        <param name="turn_preference_hold_sec" value="1.50"/>
+
+        <param name="reverse_cooldown_sec" value="3.00"/>
+        <param name="max_reverse_chain" value="2"/>
     </node>
 </launch>
