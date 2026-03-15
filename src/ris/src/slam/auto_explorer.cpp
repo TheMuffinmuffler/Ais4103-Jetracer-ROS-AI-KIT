@@ -5,11 +5,9 @@
 #include <geometry_msgs/Twist.h>
 #include <std_msgs/Bool.h>
 #include <geometry_msgs/TransformStamped.h>
-
 #include <tf2_ros/transform_listener.h>
 #include <tf2_ros/buffer.h>
 #include <tf2/exceptions.h>
-
 #include <cmath>
 #include <limits>
 #include <string>
@@ -47,13 +45,9 @@ public:
         pnh_.param("map_topic", map_topic_, std::string("/map"));
         pnh_.param("cmd_topic", cmd_topic_, std::string("/cmd_vel"));
         pnh_.param("exploration_done_topic", done_topic_, std::string("/exploration_done"));
-
         pnh_.param("map_frame", map_frame_, std::string("map"));
         pnh_.param("base_frame", base_frame_, std::string("base_footprint"));
-
         pnh_.param("control_rate_hz", control_rate_hz_, 10.0);
-
-        // Safety distances
         pnh_.param("front_clear_dist", front_clear_dist_, 1.40);
         pnh_.param("front_caution_dist", front_caution_dist_, 1.00);
         pnh_.param("front_block_dist", front_block_dist_, 0.55);
@@ -62,57 +56,41 @@ public:
         pnh_.param("rear_clear_dist", rear_clear_dist_, 0.65);
         pnh_.param("rear_block_dist", rear_block_dist_, 0.30);
         pnh_.param("rear_emergency_dist", rear_emergency_dist_, 0.20);
-
         pnh_.param("side_block_dist", side_block_dist_, 0.25);
         pnh_.param("side_emergency_dist", side_emergency_dist_, 0.16);
-
-        // Speeds (raised strongly, min forward = 0.20 as requested)
         pnh_.param("forward_speed_max", forward_speed_max_, 0.34);
         pnh_.param("forward_speed_min", forward_speed_min_, 0.20);
         pnh_.param("forward_speed_recovery", forward_speed_recovery_, 0.24);
         pnh_.param("corridor_speed_max", corridor_speed_max_, 0.24);
         pnh_.param("reverse_speed", reverse_speed_, -0.20);
-
         pnh_.param("turn_speed_soft", turn_speed_soft_, 0.65);
         pnh_.param("turn_speed_hard", turn_speed_hard_, 1.20);
         pnh_.param("reverse_turn_speed", reverse_turn_speed_, 0.95);
-
         pnh_.param("reverse_duration_sec", reverse_duration_sec_, 0.65);
         pnh_.param("turn_duration_sec", turn_duration_sec_, 0.85);
         pnh_.param("escape_turn_duration_sec", escape_turn_duration_sec_, 1.60);
         pnh_.param("post_recovery_guidance_sec", post_recovery_guidance_sec_, 1.00);
-
         pnh_.param("stuck_timeout_sec", stuck_timeout_sec_, 1.00);
         pnh_.param("stuck_min_progress", stuck_min_progress_, 0.040);
-
         pnh_.param("max_recovery_attempts", max_recovery_attempts_, 3);
-
         pnh_.param("front_sector_deg", front_sector_deg_, 35.0);
         pnh_.param("front_wide_sector_deg", front_wide_sector_deg_, 60.0);
         pnh_.param("side_sector_min_deg", side_sector_min_deg_, 20.0);
         pnh_.param("side_sector_max_deg", side_sector_max_deg_, 95.0);
         pnh_.param("rear_sector_deg", rear_sector_deg_, 35.0);
-
         pnh_.param("front_block_cycles_before_recovery", front_block_cycles_before_recovery_, 2);
         pnh_.param("front_emergency_cycles_before_recovery", front_emergency_cycles_before_recovery_, 1);
         pnh_.param("rear_block_cycles_before_stop_reverse", rear_block_cycles_before_stop_reverse_, 1);
         pnh_.param("rear_emergency_cycles_before_stop_reverse", rear_emergency_cycles_before_stop_reverse_, 1);
-
         pnh_.param("steering_deadband", steering_deadband_, 0.04);
         pnh_.param("guidance_bias_strength", guidance_bias_strength_, 0.10);
-
-        // Corridor behavior
         pnh_.param("corridor_width_threshold", corridor_width_threshold_, 1.30);
         pnh_.param("corridor_wall_presence_max", corridor_wall_presence_max_, 0.95);
         pnh_.param("corridor_center_gain", corridor_center_gain_, 1.15);
         pnh_.param("corridor_heading_gain", corridor_heading_gain_, 0.50);
         pnh_.param("corridor_front_slow_dist", corridor_front_slow_dist_, 0.80);
-
-        // Reverse policy
         pnh_.param("reverse_cooldown_sec", reverse_cooldown_sec_, 2.5);
         pnh_.param("max_reverse_chain", max_reverse_chain_, 1);
-
-        // Frontier parameters
         pnh_.param("frontier_min_cluster_size", frontier_min_cluster_size_, 6);
         pnh_.param("frontier_robot_clearance_m", frontier_robot_clearance_m_, 0.22);
         pnh_.param("frontier_goal_pullback_m", frontier_goal_pullback_m_, 0.35);
@@ -122,23 +100,16 @@ public:
         pnh_.param("frontier_heading_weight", frontier_heading_weight_, 0.65);
         pnh_.param("frontier_visit_penalty_weight", frontier_visit_penalty_weight_, 1.2);
         pnh_.param("frontier_same_goal_bonus", frontier_same_goal_bonus_, 0.35);
-
-        // Goal blacklist / failure handling
         pnh_.param("goal_reach_dist_m", goal_reach_dist_m_, 0.35);
         pnh_.param("goal_progress_timeout_sec", goal_progress_timeout_sec_, 3.0);
         pnh_.param("goal_progress_min_dist_m", goal_progress_min_dist_m_, 0.12);
         pnh_.param("goal_fail_limit", goal_fail_limit_, 2);
         pnh_.param("goal_blacklist_radius_m", goal_blacklist_radius_m_, 0.60);
         pnh_.param("goal_blacklist_duration_sec", goal_blacklist_duration_sec_, 45.0);
-
-        // Local waypoint
         pnh_.param("waypoint_step_m", waypoint_step_m_, 0.45);
         pnh_.param("waypoint_max_lookahead_m", waypoint_max_lookahead_m_, 1.20);
-
-        // Visit memory
         pnh_.param("visit_update_radius_m", visit_update_radius_m_, 0.22);
         pnh_.param("visit_penalty_cap", visit_penalty_cap_, 10.0);
-
         scan_sub_ = nh_.subscribe(scan_topic_, 1, &AutoExplorer::scanCallback, this);
         odom_sub_ = nh_.subscribe(odom_topic_, 1, &AutoExplorer::odomCallback, this);
         map_sub_ = nh_.subscribe(map_topic_, 1, &AutoExplorer::mapCallback, this);
@@ -146,7 +117,6 @@ public:
 
         cmd_pub_ = nh_.advertise<geometry_msgs::Twist>(cmd_topic_, 1);
         timer_ = nh_.createTimer(ros::Duration(1.0 / control_rate_hz_), &AutoExplorer::timerCallback, this);
-
         bias_until_ = ros::Time(0);
         reverse_cooldown_until_ = ros::Time(0);
         last_visit_update_time_ = ros::Time(0);
@@ -729,7 +699,6 @@ private:
                 cluster.distance_to_robot = 1e9;
                 cluster.heading_error_deg = 0.0;
                 cluster.visit_penalty = 0.0;
-
                 q.push(std::make_pair(mx, my));
                 visited[start_idx] = 1;
 
@@ -741,14 +710,11 @@ private:
                     const int cx = cur.first;
                     const int cy = cur.second;
                     const int cidx = gridIndex(cx, cy);
-
                     cluster.cells.push_back(cidx);
-
                     double wx, wy;
                     mapToWorld(cx, cy, wx, wy);
                     cluster.centroid_x += wx;
                     cluster.centroid_y += wy;
-
                     const double dist = std::hypot(wx - robot_map_x_, wy - robot_map_y_);
                     if (dist < cluster.distance_to_robot)
                     {
@@ -809,11 +775,8 @@ private:
 
         const double ux = dx / dist;
         const double uy = dy / dist;
-
-        // pull back from frontier
         goal_x = cluster.centroid_x - frontier_goal_pullback_m_ * ux;
         goal_y = cluster.centroid_y - frontier_goal_pullback_m_ * uy;
-
         int mx, my;
         if (!worldToMap(goal_x, goal_y, mx, my))
             return false;
@@ -864,10 +827,9 @@ private:
             const double heading_err = wrapAngleRad(target_yaw - robot_map_yaw_);
             const double heading_err_deg = rad2deg(heading_err);
 
-            // dynamic obstacle penalty from scan:
             const double scan_clear = headingScanClearanceDeg(heading_err_deg, 12.0);
             if (std::isfinite(scan_clear) && scan_clear < front_block_dist_)
-                continue; // do not choose direction currently blocked by a nearby dynamic obstacle
+                continue;
 
             const double size_term = frontier_size_weight_ * std::log(1.0 + static_cast<double>(clusters[i].cells.size()));
             const double dist_term = frontier_distance_weight_ * dist;
@@ -946,7 +908,6 @@ private:
 
         if (!found)
         {
-            // fallback إلى الهدف نفسه إذا هو مرئي وخالي
             if (!lineOfSightFree(robot_map_x_, robot_map_y_, goal_x, goal_y, frontier_robot_clearance_m_))
                 return false;
             chosen_x = goal_x;
@@ -1107,7 +1068,6 @@ private:
         {
             choosePreferredTurn(s);
             const bool rear_blocked = std::isfinite(s.rear) && s.rear < rear_clear_dist_;
-            // إذا الخلف مسدود، تحرك للأمام مع turn؛ لا تجعل الخلف خيارًا
             cmd.linear.x = rear_blocked ? forward_speed_min_ : forward_speed_recovery_;
             cmd.angular.z = preferred_left_ ? 0.35 : -0.35;
             return cmd;
@@ -1126,7 +1086,6 @@ private:
 
         double steer = deg2rad(heading_deg) * 1.00;
 
-        // corridor centering
         if (in_corridor_)
         {
             steer += corridor_center_gain_ * center_error;
@@ -1134,14 +1093,12 @@ private:
                 steer += corridor_heading_gain_ * (s.front_left - s.front_right);
         }
 
-        // front obstacle avoidance from scan
         if (std::isfinite(s.front_left) && s.front_left < front_clear_dist_)
             steer -= 0.65 * clamp((front_clear_dist_ - s.front_left) / std::max(0.001, front_clear_dist_), 0.0, 1.0);
 
         if (std::isfinite(s.front_right) && s.front_right < front_clear_dist_)
             steer += 0.65 * clamp((front_clear_dist_ - s.front_right) / std::max(0.001, front_clear_dist_), 0.0, 1.0);
 
-        // side protection
         if (std::isfinite(s.left) && s.left < side_emergency_dist_)
             steer -= 0.80;
         else if (std::isfinite(s.left) && s.left < side_block_dist_)
@@ -1152,13 +1109,11 @@ private:
         else if (std::isfinite(s.right) && s.right < side_block_dist_)
             steer += 0.40;
 
-        // IMPORTANT: if rear obstacle exists, bias away from reversing behavior by keeping forward command
         const bool rear_blocked = std::isfinite(s.rear) && s.rear < rear_clear_dist_;
         const bool front_blocked = std::isfinite(s.front) && s.front < front_block_dist_;
 
         if (rear_blocked && !front_blocked)
         {
-            // encourage forward motion, not backward
             steer *= 0.85;
             cmd.linear.x = in_corridor_
                             ? computeForwardSpeedCorridor(s, heading_deg)
@@ -1194,7 +1149,7 @@ private:
         if (reverse_chain_count_ >= max_reverse_chain_)
             return false;
         if (std::isfinite(s.rear) && s.rear < rear_clear_dist_)
-            return false; // critical: do not reverse if rear obstacle close
+            return false;
         return true;
     }
 
@@ -1207,7 +1162,6 @@ private:
         const bool rear_emergency = std::isfinite(s.rear) && s.rear < rear_emergency_dist_;
         const bool front_emergency = std::isfinite(s.front) && s.front < front_emergency_dist_;
 
-        // If something is behind, DO NOT reverse. Prefer turn / forward escape.
         if (!rear_safe || rear_emergency)
         {
             const double left_space = finiteOr(s.front_left, 2.0) + 0.5 * finiteOr(s.left_diag, 1.0);
@@ -1218,7 +1172,6 @@ private:
             return;
         }
 
-        // Corridor: prefer turn before reverse
         if (in_corridor_)
         {
             setTimedState(preferred_left_ ? TURN_LEFT : TURN_RIGHT, turn_duration_sec_);
@@ -1238,7 +1191,6 @@ private:
             return;
         }
 
-        // reverse only when front blocked and rear is actually safe
         if (reverseAllowed(s))
         {
             setTimedState(preferred_left_ ? REVERSE_LEFT : REVERSE_RIGHT, reverse_duration_sec_);
@@ -1471,59 +1423,48 @@ private:
 private:
     ros::NodeHandle nh_;
     ros::NodeHandle pnh_;
-
     tf2_ros::Buffer tf_buffer_;
     tf2_ros::TransformListener tf_listener_;
-
     ros::Subscriber scan_sub_;
     ros::Subscriber odom_sub_;
     ros::Subscriber map_sub_;
     ros::Subscriber done_sub_;
     ros::Publisher cmd_pub_;
     ros::Timer timer_;
-
     sensor_msgs::LaserScan latest_scan_;
     nav_msgs::Odometry latest_odom_;
     nav_msgs::OccupancyGrid latest_map_;
-
     bool has_scan_;
     bool has_odom_;
     bool has_map_;
     bool has_pose_in_map_;
     bool exploration_done_;
     bool in_corridor_;
-
     State state_;
     ros::Time state_end_time_;
     ros::Time bias_until_;
     ros::Time reverse_cooldown_until_;
-
     bool preferred_left_;
     int recovery_count_;
     bool progress_tracking_;
     ros::Time progress_start_time_;
     double progress_start_x_;
     double progress_start_y_;
-
     int front_block_count_;
     int front_emergency_count_;
     int rear_block_count_;
     int rear_emergency_count_;
     int reverse_chain_count_;
-
     double robot_map_x_;
     double robot_map_y_;
     double robot_map_yaw_;
-
     std::vector<double> visit_counts_;
     ros::Time last_visit_update_time_;
-
     bool last_goal_valid_;
     double last_goal_x_;
     double last_goal_y_;
     double last_heading_deg_;
     ros::Time last_frontier_select_time_;
-
     bool goal_progress_tracking_;
     ros::Time goal_track_start_time_;
     double goal_track_start_dist_;
@@ -1531,63 +1472,49 @@ private:
     double tracked_goal_y_;
     int goal_fail_count_ = 0;
     std::vector<BlacklistedGoal> goal_blacklist_;
-
     double control_rate_hz_;
-
     double front_clear_dist_;
     double front_caution_dist_;
     double front_block_dist_;
     double front_emergency_dist_;
-
     double rear_clear_dist_;
     double rear_block_dist_;
     double rear_emergency_dist_;
-
     double side_block_dist_;
     double side_emergency_dist_;
-
     double forward_speed_max_;
     double forward_speed_min_;
     double forward_speed_recovery_;
     double corridor_speed_max_;
     double reverse_speed_;
-
     double turn_speed_soft_;
     double turn_speed_hard_;
     double reverse_turn_speed_;
-
     double reverse_duration_sec_;
     double turn_duration_sec_;
     double escape_turn_duration_sec_;
     double post_recovery_guidance_sec_;
-
     double stuck_timeout_sec_;
     double stuck_min_progress_;
     int max_recovery_attempts_;
-
     double front_sector_deg_;
     double front_wide_sector_deg_;
     double side_sector_min_deg_;
     double side_sector_max_deg_;
     double rear_sector_deg_;
-
     int front_block_cycles_before_recovery_;
     int front_emergency_cycles_before_recovery_;
     int rear_block_cycles_before_stop_reverse_;
     int rear_emergency_cycles_before_stop_reverse_;
-
     double steering_deadband_;
     double guidance_bias_strength_;
-
     double corridor_width_threshold_;
     double corridor_wall_presence_max_;
     double corridor_center_gain_;
     double corridor_heading_gain_;
     double corridor_front_slow_dist_;
-
     double reverse_cooldown_sec_;
     int max_reverse_chain_;
-
     int frontier_min_cluster_size_;
     double frontier_robot_clearance_m_;
     double frontier_goal_pullback_m_;
@@ -1597,20 +1524,16 @@ private:
     double frontier_heading_weight_;
     double frontier_visit_penalty_weight_;
     double frontier_same_goal_bonus_;
-
     double goal_reach_dist_m_;
     double goal_progress_timeout_sec_;
     double goal_progress_min_dist_m_;
     int goal_fail_limit_;
     double goal_blacklist_radius_m_;
     double goal_blacklist_duration_sec_;
-
     double waypoint_step_m_;
     double waypoint_max_lookahead_m_;
-
     double visit_update_radius_m_;
     double visit_penalty_cap_;
-
     std::string scan_topic_;
     std::string odom_topic_;
     std::string map_topic_;
