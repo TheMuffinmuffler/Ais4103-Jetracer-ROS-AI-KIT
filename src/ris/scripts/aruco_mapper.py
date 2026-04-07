@@ -10,8 +10,10 @@ import tf2_ros
 import tf2_geometry_msgs
 
 from sensor_msgs.msg import CompressedImage, CameraInfo
-from geometry_msgs.msg import PointStamped
+from geometry_msgs.msg import PointStamped, PoseStamped, Quaternion
+from visualization_msgs.msg import Marker
 from cv_bridge import CvBridge, CvBridgeError
+import tf.transformations as tft
 
 class ArucoMapper:
     def __init__(self):
@@ -20,7 +22,7 @@ class ArucoMapper:
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer)
         self.bridge = CvBridge()
         self.counter = 0
-        self.process_every_n_frames = 5 #Skipps every 5 frames
+        self.process_every_n_frames = 2 # Process more frequently for averaging
 
         self.camera_matrix = None
         self.dist_coeffs = None
@@ -28,13 +30,18 @@ class ArucoMapper:
         # Your measured ArUco marker size in meters
         self.marker_size = 0.038
 
+        # --- MAPPING LOGIC ---
+        self.mapping_ids = [1, 2, 3, 4] # The IDs we want to place on the map
+        self.buffers = {mid: [] for mid in self.mapping_ids}
+        self.buffer_size = 15 # Number of frames to average
+        # ---------------------
 
         self.info_sub = rospy.Subscriber(self.camera_name+"/camera_info", CameraInfo, self.info_callback)
-
         self.image_sub = rospy.Subscriber("/cv_video/compressed", CompressedImage, self.callback)
+        
         self.image_pub = rospy.Publisher("/aruco_video/compressed", CompressedImage, queue_size=10)
-
-        self.waypoint_pub = rospy.Publisher("/aruco_waypoints", PointStamped, queue_size=10)
+        self.waypoint_pub = rospy.Publisher("/aruco_waypoints", PoseStamped, queue_size=10)
+        self.rviz_pub = rospy.Publisher("/aruco_markers_rviz", Marker, queue_size=10)
 
 
 
@@ -92,6 +99,12 @@ class ArucoMapper:
                             corners, self.marker_size, self.camera_matrix, self.dist_coeffs)
 
                         for i in range(len(ids)):
+                            marker_id = int(ids[i][0])
+                            
+                            # A: FILTER - Only process IDs in our whitelist
+                            if marker_id not in self.mapping_ids:
+                                continue
+
                             # Draw the 3D axes
                             aruco.drawAxis(img, self.camera_matrix, self.dist_coeffs,
                                            rvecs[i], tvecs[i], self.marker_size)
@@ -101,40 +114,98 @@ class ArucoMapper:
                             y_dist = tvecs[i][0][1]
                             z_dist = tvecs[i][0][2]
 
-                            # ROS-FRIENDLY PRINT: This forces the terminal to update immediately
-                            rospy.loginfo("Marker [%s]: is %.2fm left/right, %.2fm up/down, and %.2fm straight ahead!",
-                                          str(ids[i][0]), x_dist, y_dist, z_dist)
-
                             # Prepare point for TF transformation
                             local_point = PointStamped()
                             local_point.header.stamp = rospy.Time(0)
                             local_point.header.frame_id = self.camera_name
-
-                            # Coordinate swap based on your lens math
                             local_point.point.x = z_dist  # Forward
                             local_point.point.y = -x_dist # Left
                             local_point.point.z = -y_dist # Up
 
                             try:
                                 # Transform to global 'map' frame
-                                global_point = self.tf_buffer.transform(local_point, "map", rospy.Duration(0.1))
+                                # Note: We need the full transform (position + orientation)
+                                local_pose = PoseStamped()
+                                local_pose.header.stamp = rospy.Time(0)
+                                local_pose.header.frame_id = self.camera_name
+                                local_pose.pose.position.x = z_dist
+                                local_pose.pose.position.y = -x_dist
+                                local_pose.pose.position.z = -y_dist
+                                
+                                # Convert rvec to quaternion for the transform
+                                R, _ = cv.Rodrigues(rvecs[i])
+                                T_4x4 = np.eye(4)
+                                T_4x4[:3, :3] = R
+                                quat = tft.quaternion_from_matrix(T_4x4)
+                                
+                                # ArUco axes are weird; swap them to match ROS (Z forward, X right, Y up)
+                                # But let's just use the position for now and calculate yaw from the map transform
+                                local_pose.pose.orientation.x = quat[0]
+                                local_pose.pose.orientation.y = quat[1]
+                                local_pose.pose.orientation.z = quat[2]
+                                local_pose.pose.orientation.w = quat[3]
 
-                                # Use marker ID as the frame name for the saver
-                                global_point.header.frame_id = str(ids[i][0])
+                                global_pose = self.tf_buffer.transform(local_pose, "map", rospy.Duration(0.1))
+                                
+                                # B: BUFFER - Add to the smoothing buffer
+                                self.buffers[marker_id].append(global_pose.pose)
 
-                                # Publish the result
-                                self.waypoint_pub.publish(global_point)
+                                # C: AVERAGE & PUBLISH
+                                if len(self.buffers[marker_id]) >= self.buffer_size:
+                                    avg_x = sum(p.position.x for p in self.buffers[marker_id]) / self.buffer_size
+                                    avg_y = sum(p.position.y for p in self.buffers[marker_id]) / self.buffer_size
+                                    
+                                    # For orientation, we'll just take the last one or average the yaw
+                                    # (Simplification: Use the most recent orientation for the mapped marker)
+                                    final_quat = self.buffers[marker_id][-1].orientation
+                                    
+                                    # Finalized Pose
+                                    final_pose = PoseStamped()
+                                    final_pose.header.frame_id = str(marker_id)
+                                    final_pose.pose.position.x = avg_x
+                                    final_pose.pose.position.y = avg_y
+                                    final_pose.pose.orientation = final_quat
+                                    
+                                    # 1. Send to the Waypoint Saver
+                                    self.waypoint_pub.publish(final_pose)
+                                    
+                                    # 2. Publish to RViz for visual confirmation
+                                    self.publish_rviz_marker(marker_id, avg_x, avg_y, final_quat)
+
+                                    # Reset buffer to prevent spamming
+                                    self.buffers[marker_id] = []
+                                    rospy.loginfo("PLACED: Marker [%s] at X: %.2f, Y: %.2f", marker_id, avg_x, avg_y)
 
                             except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
-                                # WARN INSTEAD OF PASSING
-                                rospy.logwarn_throttle(5, "No map transform found! Publishing raw camera coordinates. Error: {}".format(e))
+                                rospy.logwarn_throttle(10, "No map transform! Marker detected but map not ready.")
 
-                                # Fallback: Publish raw camera coords so the saver still works
-                                local_point.header.frame_id = str(ids[i][0])
-                                self.waypoint_pub.publish(local_point)
-
-                        # We ACTUALLY found a marker, so now it is safe to stop checking other dictionaries
+                        # We found a marker, stop checking other dictionaries
                         break
+
+    def publish_rviz_marker(self, marker_id, x, y, quat):
+        marker = Marker()
+        marker.header.frame_id = "map"
+        marker.header.stamp = rospy.Time.now()
+        marker.ns = "aruco_mapping"
+        marker.id = marker_id
+        marker.type = Marker.CUBE
+        marker.action = Marker.ADD
+        
+        marker.pose.position.x = x
+        marker.pose.position.y = y
+        marker.pose.position.z = 0.05 # Slightly above the floor
+        marker.pose.orientation = quat
+        
+        marker.scale.x = 0.08
+        marker.scale.y = 0.08
+        marker.scale.z = 0.08
+        
+        marker.color.r = 0.0
+        marker.color.g = 1.0 # Bright green
+        marker.color.b = 0.0
+        marker.color.a = 1.0 # Opaque
+        
+        self.rviz_pub.publish(marker)
 
                         # --- Visuals and Publishing ---
         cv.imshow("ArUco Scanner", img)
