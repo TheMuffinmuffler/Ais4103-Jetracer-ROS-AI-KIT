@@ -12,6 +12,10 @@
 #include <nav_msgs/Path.h>
 #include <geometry_msgs/PoseStamped.h>
 
+
+// NEW for solving planner pb
+#include <tf/tf.h>
+
 //////////////////////////////////////////// Class GridPlannerNode START ////////////////////////////////////////////
 class GridPlannerNode
 {
@@ -68,6 +72,16 @@ private:
     width = (int)map.info.width;
     height = (int)map.info.height;
 
+// NEw for planner pb 
+    ROS_INFO("--> origin orientation q: [x=%.6f, y=%.6f, z=%.6f, w=%.6f]",
+         map.info.origin.orientation.x,
+         map.info.origin.orientation.y,
+         map.info.origin.orientation.z,
+         map.info.origin.orientation.w);
+//
+
+
+
     ROS_INFO("Map received =) ");
     ROS_INFO("--> resolution: %.3f m/cell", resolution);
     ROS_INFO("--> origin:     (%.3f, %.3f) m", origin_x, origin_y);
@@ -78,11 +92,21 @@ private:
     if (planned_once)
       return;
 
-    
+    // START and GOAL points 
+
+/* {id: 0, x: -4.00995779037, y: -0.996777892113}
+- {id: 1, x: 4.34944057465, y: -0.553416728973}
+- {id: 2, x: 15.0812244415, y: 0.201877117157}
+- {id: 3, x: 14.6693248749, y: 8.143907547}
+- {id: 4, x: 17.9891986847, y: 0.419644832611}
+*/ 
     double start_wx = -4.00995779037;
     double start_wy = -0.996777892113;
     double goal_wx  = 14.6693248749;
-    double goal_wy  = 8.143907547;
+    double goal_wy  = 8.143907547;// 3
+
+
+
     planned_once = true; // set the flag 
     call_planner_and_print_waypoints_World(start_wx, start_wy, goal_wx, goal_wy);
   }
@@ -165,7 +189,9 @@ private:
   // Manhattan heuristic
   int heuristic(int x1, int y1, int x2, int y2)
   {
-    return std::abs(x1 - x2) + std::abs(y1 - y2);
+    int dx = std::abs(x1 - x2);
+    int dy = std::abs(y1 - y2);
+    return 10 * (dx + dy) + (14 - 20) * std::min(dx, dy);
   }
 
 // ---------------------------- getBestOpenNode ----------------------------
@@ -235,9 +261,9 @@ private:
     g_score[start_index] = 0; // because start node 
     open.push_back(start_index); // add to open list 
 
-    // 4-connected moves, in order Right, Left, Up, Down 
-    int dx[4] = { 1, -1,  0,  0 };
-    int dy[4] = { 0,  0,  1, -1 };
+    // 8-connected moves (4 cardinal + 4 diagonal)
+    int dx[8] = { 1, -1,  0,  0,  1,  1, -1, -1 };
+    int dy[8] = { 0,  0,  1, -1,  1, -1,  1, -1 };
 
 
     // ----- algo loop  -----
@@ -280,11 +306,17 @@ private:
       int current_x = current % width;
       int current_y = current / width;
 
-      // for all (max) 4 possible moves 
-      for (int i = 0; i < 4; i++)
+      // for all (max) 8 possible moves 
+      for (int i = 0; i < 8; i++)
       {
         int neighbor_x = current_x + dx[i];
         int neighbor_y = current_y + dy[i];
+
+	// STEP 5: prevent corner cutting
+  	if (dx[i] != 0 && dy[i] != 0) {
+    	  if (!isCellFree(current_x + dx[i], current_y) || !isCellFree(current_x, current_y + dy[i]))
+      	    continue;
+  	}
 
         // check if neighbor cell is free 
         if (!isCellFree(neighbor_x, neighbor_y))
@@ -296,8 +328,14 @@ private:
         if (closed[neighbor])
           continue;
 
-        // moving to a neighbor costs 1
-        int tentative_g = g_score[current] + 1;
+        // diagonal move-> cost √2 ≈ 1.414
+	int move_cost;
+	if (dx[i] != 0 && dy[i] != 0)
+  	  move_cost = 14;   // diagonal move (≈ 1.4 * 10)
+	else
+  	  move_cost = 10;   // straight move 
+
+	int tentative_g = g_score[current] + move_cost;
 	
 	// if moving to neighbor is cheaper than the current g_score
         if (tentative_g < g_score[neighbor])
@@ -311,6 +349,33 @@ private:
 
     ROS_WARN("A*: No path found for these start and goal points  :((");
     return empty_path;
+  }
+
+// ------------------------------------------- simplifyPath ---------------NEW-------------------------
+
+  std::vector<std::pair<int,int>> simplifyPath(const std::vector<std::pair<int,int>> &path)
+  {
+    if (path.size() < 3)
+      return path;
+
+    std::vector<std::pair<int,int>> simplified;
+    simplified.push_back(path[0]);
+
+    for (size_t i = 1; i < path.size() - 1; i++)
+    {
+      int dx1 = path[i].first  - path[i-1].first;
+      int dy1 = path[i].second - path[i-1].second;
+
+      int dx2 = path[i+1].first  - path[i].first;
+      int dy2 = path[i+1].second - path[i].second;
+
+      // keep point only if direction changes
+      if (dx1 != dx2 || dy1 != dy2)
+        simplified.push_back(path[i]);
+    }
+
+    simplified.push_back(path.back());
+    return simplified;
   }
 
 
@@ -334,6 +399,7 @@ private:
     ROS_INFO("----> You gave Start cell: (%d,%d) and Goal cell: (%d,%d)", start_x, start_y, goal_x, goal_y);
 
     std::vector<std::pair<int,int>> path_cells = A_Star_Algo(start_x, start_y, goal_x, goal_y);
+    path_cells = simplifyPath(path_cells);
 
     if (path_cells.empty())
     {
