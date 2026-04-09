@@ -20,10 +20,6 @@
     <param name="exploration_done_topic" value="/exploration_done"/>
     <param name="publish_exploration_done" value="true"/>
 
-    <param name="require_no_frontiers_to_finish" value="true"/>
-    <param name="frontier_min_cluster_size" value="8"/>
-    <param name="frontier_check_radius_m" value="6.0"/>
-    <param name="frontier_unknown_neighbor_count_min" value="1"/>
 
   </node>
 </launch>

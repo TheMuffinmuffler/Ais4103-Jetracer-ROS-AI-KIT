@@ -99,10 +99,5 @@
         <param name="laser_neighbor_reject_jump" value="0.50"/>
 
 
-
-        <param name="branch_opening_dist" value="1.20"/>
-        <param name="branch_bonus_weight" value="1.4"/>
-        <param name="frontier_reselect_period_sec" value="0.8"/>
-
     </node>
 </launch>

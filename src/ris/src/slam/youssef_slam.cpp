@@ -5,8 +5,6 @@
 #include <cstdlib>
 #include <sstream>
 #include <string>
-#include <cmath>
-#include <vector>
 
 class YoussefSlam
 {
@@ -25,23 +23,14 @@ public:
         pnh_.param("robot_map_dir", robot_map_dir_, std::string("/home/jetson/maps"));
         pnh_.param("robot_user", robot_user_, std::string("jetson"));
         pnh_.param("robot_ip", robot_ip_, std::string("192.168.0.144"));
-
         pnh_.param("check_period_sec", check_period_sec_, 2.0);
         pnh_.param("stable_seconds_before_save", stable_seconds_before_save_, 12.0);
         pnh_.param("changed_cells_threshold", changed_cells_threshold_, 20);
         pnh_.param("min_exploration_time_sec", min_exploration_time_sec_, 90.0);
-
         pnh_.param("gmapping_node_name", gmapping_node_name_, std::string("/slam_gmapping"));
         pnh_.param("stop_robot_before_save", stop_robot_before_save_, true);
-
         pnh_.param("exploration_done_topic", exploration_done_topic_, std::string("/exploration_done"));
         pnh_.param("publish_exploration_done", publish_exploration_done_, true);
-
-        // frontier-aware finish
-        pnh_.param("require_no_frontiers_to_finish", require_no_frontiers_to_finish_, true);
-        pnh_.param("frontier_min_cluster_size", frontier_min_cluster_size_, 8);
-        pnh_.param("frontier_check_radius_m", frontier_check_radius_m_, 6.0);
-        pnh_.param("frontier_unknown_neighbor_count_min", frontier_unknown_neighbor_count_min_, 1);
 
         map_sub_ = nh_.subscribe(map_topic_, 1, &YoussefSlam::mapCallback, this);
         cmd_pub_ = nh_.advertise<geometry_msgs::Twist>("/cmd_vel", 1, true);
@@ -62,9 +51,6 @@ public:
         ROS_INFO_STREAM("stable_seconds_before_save: " << stable_seconds_before_save_);
         ROS_INFO_STREAM("min_exploration_time_sec: " << min_exploration_time_sec_);
         ROS_INFO_STREAM("exploration_done_topic: " << exploration_done_topic_);
-        ROS_INFO_STREAM("require_no_frontiers_to_finish: " << (require_no_frontiers_to_finish_ ? "true" : "false"));
-        ROS_INFO_STREAM("frontier_min_cluster_size: " << frontier_min_cluster_size_);
-        ROS_INFO_STREAM("frontier_check_radius_m: " << frontier_check_radius_m_);
     }
 
 private:
@@ -86,177 +72,6 @@ private:
                 ++changed;
         }
         return changed;
-    }
-
-    bool validCell(int mx, int my, int width, int height) const
-    {
-        return mx >= 0 && my >= 0 && mx < width && my < height;
-    }
-
-    bool isFreeCell(const nav_msgs::OccupancyGrid& map, int mx, int my) const
-    {
-        const int width = static_cast<int>(map.info.width);
-        const int height = static_cast<int>(map.info.height);
-        if (!validCell(mx, my, width, height))
-            return false;
-        return map.data[my * width + mx] == 0;
-    }
-
-    bool isUnknownCell(const nav_msgs::OccupancyGrid& map, int mx, int my) const
-    {
-        const int width = static_cast<int>(map.info.width);
-        const int height = static_cast<int>(map.info.height);
-        if (!validCell(mx, my, width, height))
-            return false;
-        return map.data[my * width + mx] == -1;
-    }
-
-    int countUnknownNeighbors(const nav_msgs::OccupancyGrid& map, int mx, int my) const
-    {
-        int count = 0;
-        const int width = static_cast<int>(map.info.width);
-        const int height = static_cast<int>(map.info.height);
-
-        for (int dy = -1; dy <= 1; ++dy)
-        {
-            for (int dx = -1; dx <= 1; ++dx)
-            {
-                if (dx == 0 && dy == 0)
-                    continue;
-
-                int nx = mx + dx;
-                int ny = my + dy;
-                if (!validCell(nx, ny, width, height))
-                    continue;
-
-                if (isUnknownCell(map, nx, ny))
-                    ++count;
-            }
-        }
-        return count;
-    }
-
-    bool isFrontierCell(const nav_msgs::OccupancyGrid& map, int mx, int my) const
-    {
-        if (!isFreeCell(map, mx, my))
-            return false;
-
-        return countUnknownNeighbors(map, mx, my) >= frontier_unknown_neighbor_count_min_;
-    }
-
-    int estimateFrontierClusterCount(const nav_msgs::OccupancyGrid& map) const
-    {
-        const int width = static_cast<int>(map.info.width);
-        const int height = static_cast<int>(map.info.height);
-        const int total = width * height;
-
-        if (width <= 2 || height <= 2 || total <= 0)
-            return 0;
-
-        std::vector<unsigned char> frontier_mask(total, 0);
-        std::vector<unsigned char> visited(total, 0);
-
-        double robot_x = 0.0;
-        double robot_y = 0.0;
-        bool have_robot_hint = false;
-
-        // Approximate center of explored/free space to avoid counting very far noise.
-        long long sum_x = 0;
-        long long sum_y = 0;
-        long long free_count = 0;
-
-        for (int my = 1; my < height - 1; ++my)
-        {
-            for (int mx = 1; mx < width - 1; ++mx)
-            {
-                if (isFreeCell(map, mx, my))
-                {
-                    sum_x += mx;
-                    sum_y += my;
-                    ++free_count;
-                }
-            }
-        }
-
-        if (free_count > 0)
-        {
-            robot_x = static_cast<double>(sum_x) / static_cast<double>(free_count);
-            robot_y = static_cast<double>(sum_y) / static_cast<double>(free_count);
-            have_robot_hint = true;
-        }
-
-        const double radius_cells =
-            std::max(1.0, frontier_check_radius_m_ / std::max(0.001, static_cast<double>(map.info.resolution)));
-
-        for (int my = 1; my < height - 1; ++my)
-        {
-            for (int mx = 1; mx < width - 1; ++mx)
-            {
-                if (have_robot_hint)
-                {
-                    const double dx = static_cast<double>(mx) - robot_x;
-                    const double dy = static_cast<double>(my) - robot_y;
-                    if (std::sqrt(dx * dx + dy * dy) > radius_cells)
-                        continue;
-                }
-
-                if (isFrontierCell(map, mx, my))
-                    frontier_mask[my * width + mx] = 1;
-            }
-        }
-
-        int good_clusters = 0;
-
-        for (int my = 1; my < height - 1; ++my)
-        {
-            for (int mx = 1; mx < width - 1; ++mx)
-            {
-                const int idx = my * width + mx;
-                if (!frontier_mask[idx] || visited[idx])
-                    continue;
-
-                std::vector<std::pair<int, int> > queue;
-                queue.push_back(std::make_pair(mx, my));
-                visited[idx] = 1;
-
-                int cluster_size = 0;
-                std::size_t q_index = 0;
-
-                while (q_index < queue.size())
-                {
-                    const int cx = queue[q_index].first;
-                    const int cy = queue[q_index].second;
-                    ++q_index;
-                    ++cluster_size;
-
-                    for (int dy = -1; dy <= 1; ++dy)
-                    {
-                        for (int dx = -1; dx <= 1; ++dx)
-                        {
-                            if (dx == 0 && dy == 0)
-                                continue;
-
-                            const int nx = cx + dx;
-                            const int ny = cy + dy;
-                            if (!validCell(nx, ny, width, height))
-                                continue;
-
-                            const int nidx = ny * width + nx;
-                            if (!frontier_mask[nidx] || visited[nidx])
-                                continue;
-
-                            visited[nidx] = 1;
-                            queue.push_back(std::make_pair(nx, ny));
-                        }
-                    }
-                }
-
-                if (cluster_size >= frontier_min_cluster_size_)
-                    ++good_clusters;
-            }
-        }
-
-        return good_clusters;
     }
 
     void publishStop()
@@ -359,7 +174,7 @@ private:
     {
         std::stringstream ss;
         ss << "rosnode kill " << gmapping_node_name_;
-        ROS_INFO_STREAM("Stopping slam node with command: " << ss.str());
+        ROS_INFO_STREAM("Stopping gmapping with command: " << ss.str());
         std::system(ss.str().c_str());
     }
 
@@ -390,7 +205,6 @@ private:
 
         stopGmapping();
         finished_ = true;
-
         if (laptop_ok && robot_copy_ok)
             ROS_INFO("Automatic exploration completion/save/copy/stop sequence finished successfully.");
         else if (laptop_ok)
@@ -443,22 +257,8 @@ private:
             return;
         }
 
-        if (stable_time_acc_ < stable_seconds_before_save_)
-            return;
-
-        if (require_no_frontiers_to_finish_)
-        {
-            int frontier_clusters = estimateFrontierClusterCount(latest_map_);
-            ROS_INFO_STREAM("Frontier-aware finish check: frontier_clusters=" << frontier_clusters);
-
-            if (frontier_clusters > 0)
-            {
-                ROS_INFO("Map looks stable, but frontiers still exist. Continue exploring.");
-                return;
-            }
-        }
-
-        finishSequence();
+        if (stable_time_acc_ >= stable_seconds_before_save_)
+            finishSequence();
     }
 
 private:
@@ -468,7 +268,6 @@ private:
     ros::Publisher cmd_pub_;
     ros::Publisher exploration_done_pub_;
     ros::Timer timer_;
-
     nav_msgs::OccupancyGrid latest_map_;
     nav_msgs::OccupancyGrid previous_map_;
 
@@ -481,15 +280,9 @@ private:
     double check_period_sec_;
     double stable_seconds_before_save_;
     double min_exploration_time_sec_;
-
     int changed_cells_threshold_;
     bool stop_robot_before_save_;
     bool publish_exploration_done_;
-
-    bool require_no_frontiers_to_finish_;
-    int frontier_min_cluster_size_;
-    double frontier_check_radius_m_;
-    int frontier_unknown_neighbor_count_min_;
 
     ros::Time start_time_;
 

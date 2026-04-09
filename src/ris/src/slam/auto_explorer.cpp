@@ -5,16 +5,15 @@
 #include <geometry_msgs/Twist.h>
 #include <std_msgs/Bool.h>
 #include <geometry_msgs/TransformStamped.h>
-
 #include <tf2_ros/transform_listener.h>
 #include <tf2_ros/buffer.h>
 #include <tf2/exceptions.h>
-
 #include <cmath>
 #include <limits>
 #include <string>
 #include <vector>
 #include <queue>
+#include <deque>
 #include <algorithm>
 
 class AutoExplorer
@@ -33,23 +32,23 @@ public:
           state_(SELECT_GOAL),
           preferred_left_(true),
           in_corridor_(false),
-          last_goal_valid_(false),
-          progress_tracking_(false),
           recovery_count_(0),
-          reverse_chain_count_(0),
-          goal_fail_count_(0)
+          progress_tracking_(false),
+          last_heading_deg_(0.0),
+          last_goal_valid_(false),
+          goal_progress_tracking_(false)
     {
         pnh_.param("scan_topic", scan_topic_, std::string("/scan"));
         pnh_.param("odom_topic", odom_topic_, std::string("/odom"));
         pnh_.param("map_topic", map_topic_, std::string("/map"));
         pnh_.param("cmd_topic", cmd_topic_, std::string("/cmd_vel"));
         pnh_.param("exploration_done_topic", done_topic_, std::string("/exploration_done"));
-
         pnh_.param("map_frame", map_frame_, std::string("map"));
         pnh_.param("base_frame", base_frame_, std::string("base_footprint"));
 
         pnh_.param("control_rate_hz", control_rate_hz_, 10.0);
 
+        // Distances
         pnh_.param("front_clear_dist", front_clear_dist_, 1.40);
         pnh_.param("front_caution_dist", front_caution_dist_, 1.00);
         pnh_.param("front_block_dist", front_block_dist_, 0.55);
@@ -62,6 +61,7 @@ public:
         pnh_.param("side_block_dist", side_block_dist_, 0.25);
         pnh_.param("side_emergency_dist", side_emergency_dist_, 0.16);
 
+        // Speeds
         pnh_.param("forward_speed_max", forward_speed_max_, 0.34);
         pnh_.param("forward_speed_min", forward_speed_min_, 0.20);
         pnh_.param("forward_speed_recovery", forward_speed_recovery_, 0.24);
@@ -75,6 +75,7 @@ public:
         pnh_.param("reverse_duration_sec", reverse_duration_sec_, 0.65);
         pnh_.param("turn_duration_sec", turn_duration_sec_, 0.85);
         pnh_.param("escape_turn_duration_sec", escape_turn_duration_sec_, 1.60);
+        pnh_.param("recovery_forward_duration_sec", recovery_forward_duration_sec_, 0.55);
 
         pnh_.param("stuck_timeout_sec", stuck_timeout_sec_, 1.20);
         pnh_.param("stuck_min_progress", stuck_min_progress_, 0.05);
@@ -83,35 +84,35 @@ public:
         pnh_.param("max_reverse_chain", max_reverse_chain_, 1);
         pnh_.param("reverse_cooldown_sec", reverse_cooldown_sec_, 2.5);
 
+        // Sectors
         pnh_.param("front_sector_deg", front_sector_deg_, 35.0);
         pnh_.param("front_wide_sector_deg", front_wide_sector_deg_, 60.0);
         pnh_.param("side_sector_min_deg", side_sector_min_deg_, 20.0);
         pnh_.param("side_sector_max_deg", side_sector_max_deg_, 95.0);
         pnh_.param("rear_sector_deg", rear_sector_deg_, 35.0);
 
+        // Steering / corridor
         pnh_.param("steering_deadband", steering_deadband_, 0.04);
-
         pnh_.param("corridor_width_threshold", corridor_width_threshold_, 1.30);
         pnh_.param("corridor_wall_presence_max", corridor_wall_presence_max_, 0.95);
         pnh_.param("corridor_center_gain", corridor_center_gain_, 1.15);
         pnh_.param("corridor_heading_gain", corridor_heading_gain_, 0.55);
         pnh_.param("corridor_front_slow_dist", corridor_front_slow_dist_, 0.80);
 
-        // new: branch / opening exploration
-        pnh_.param("branch_opening_dist", branch_opening_dist_, 1.20);
-        pnh_.param("branch_bonus_weight", branch_bonus_weight_, 1.4);
-        pnh_.param("frontier_reselect_period_sec", frontier_reselect_period_sec_, 0.8);
-
+        // Frontier / goal
         pnh_.param("frontier_min_cluster_size", frontier_min_cluster_size_, 8);
         pnh_.param("frontier_robot_clearance_m", frontier_robot_clearance_m_, 0.24);
         pnh_.param("frontier_goal_pullback_m", frontier_goal_pullback_m_, 0.35);
-        pnh_.param("frontier_size_weight", frontier_size_weight_, 1.30);
+        pnh_.param("frontier_reselect_period_sec", frontier_reselect_period_sec_, 0.8);
+        pnh_.param("frontier_size_weight", frontier_size_weight_, 1.3);
         pnh_.param("frontier_distance_weight", frontier_distance_weight_, 0.90);
         pnh_.param("frontier_heading_weight", frontier_heading_weight_, 0.70);
-        pnh_.param("frontier_visit_penalty_weight", frontier_visit_penalty_weight_, 1.30);
-        pnh_.param("frontier_unknown_density_weight", frontier_unknown_density_weight_, 1.20);
+        pnh_.param("frontier_visit_penalty_weight", frontier_visit_penalty_weight_, 1.3);
+        pnh_.param("frontier_unknown_density_weight", frontier_unknown_density_weight_, 1.2);
         pnh_.param("frontier_same_goal_bonus", frontier_same_goal_bonus_, 0.35);
+        pnh_.param("frontier_narrow_penalty_weight", frontier_narrow_penalty_weight_, 1.2);
 
+        // Goal failure / blacklist
         pnh_.param("goal_reach_dist_m", goal_reach_dist_m_, 0.35);
         pnh_.param("goal_progress_timeout_sec", goal_progress_timeout_sec_, 3.0);
         pnh_.param("goal_progress_min_dist_m", goal_progress_min_dist_m_, 0.12);
@@ -119,12 +120,24 @@ public:
         pnh_.param("goal_blacklist_radius_m", goal_blacklist_radius_m_, 0.70);
         pnh_.param("goal_blacklist_duration_sec", goal_blacklist_duration_sec_, 45.0);
 
+        // Local waypoint
         pnh_.param("waypoint_step_m", waypoint_step_m_, 0.40);
         pnh_.param("waypoint_max_lookahead_m", waypoint_max_lookahead_m_, 1.20);
 
+        // Visit memory
         pnh_.param("visit_update_radius_m", visit_update_radius_m_, 0.25);
         pnh_.param("visit_penalty_cap", visit_penalty_cap_, 10.0);
 
+        // Local planner
+        pnh_.param("traj_sim_time_sec", traj_sim_time_sec_, 0.90);
+        pnh_.param("traj_dt_sec", traj_dt_sec_, 0.10);
+        pnh_.param("traj_goal_weight", traj_goal_weight_, 2.5);
+        pnh_.param("traj_clearance_weight", traj_clearance_weight_, 1.8);
+        pnh_.param("traj_smoothness_weight", traj_smoothness_weight_, 0.55);
+        pnh_.param("traj_visit_weight", traj_visit_weight_, 0.90);
+        pnh_.param("traj_progress_weight", traj_progress_weight_, 1.20);
+
+        // Laser filtering
         pnh_.param("laser_sector_quantile", laser_sector_quantile_, 0.25);
         pnh_.param("laser_neighbor_reject_jump", laser_neighbor_reject_jump_, 0.50);
 
@@ -140,7 +153,7 @@ public:
         last_visit_update_time_ = ros::Time(0);
         last_frontier_select_time_ = ros::Time(0);
 
-        ROS_INFO("auto_explorer with corridor branch exploration started.");
+        ROS_INFO("auto_explorer advanced production-style explorer started.");
     }
 
 private:
@@ -177,6 +190,7 @@ private:
         double nearest_x;
         double nearest_y;
         double unknown_density_score;
+        double width_score;
         double score;
         double distance_to_robot;
         double heading_error_deg;
@@ -188,6 +202,16 @@ private:
         double x;
         double y;
         ros::Time until;
+    };
+
+    struct TrajectoryCandidate
+    {
+        double v;
+        double w;
+        double score;
+        double final_x;
+        double final_y;
+        double final_yaw;
     };
 
     void scanCallback(const sensor_msgs::LaserScan::ConstPtr& msg)
@@ -207,7 +231,7 @@ private:
         latest_map_ = *msg;
         has_map_ = true;
 
-        std::size_t needed =
+        const std::size_t needed =
             static_cast<std::size_t>(latest_map_.info.width) *
             static_cast<std::size_t>(latest_map_.info.height);
 
@@ -311,6 +335,7 @@ private:
             if (r < latest_scan_.range_min || r > latest_scan_.range_max)
                 continue;
 
+            // neighbor-based spike rejection
             if (i > 0 && i + 1 < latest_scan_.ranges.size())
             {
                 double l = latest_scan_.ranges[i - 1];
@@ -343,44 +368,132 @@ private:
         return vals[idx];
     }
 
+    double headingScanClearanceDeg(double heading_deg, double half_width_deg) const
+    {
+        return robustSectorDistance(heading_deg - half_width_deg, heading_deg + half_width_deg);
+    }
+
     SectorInfo readSectors() const
     {
         SectorInfo s;
         s.front = robustSectorDistance(-front_sector_deg_, front_sector_deg_);
         s.front_wide = robustSectorDistance(-front_wide_sector_deg_, front_wide_sector_deg_);
-
-        // IMPORTANT:
-        // These are intentionally reversed because your real robot showed left/right inversion.
-        s.front_left  = robustSectorDistance(-side_sector_max_deg_, -side_sector_min_deg_);
         s.front_right = robustSectorDistance(side_sector_min_deg_, side_sector_max_deg_);
-
-        s.left  = robustSectorDistance(-100.0, -70.0);
+        s.front_left = robustSectorDistance(-side_sector_max_deg_, -side_sector_min_deg_);
         s.right = robustSectorDistance(70.0, 100.0);
-
-        s.left_diag  = robustSectorDistance(-65.0, -35.0);
+        s.left = robustSectorDistance(-100.0, -70.0);
         s.right_diag = robustSectorDistance(35.0, 65.0);
+        s.left_diag = robustSectorDistance(-65.0, -35.0);
 
         s.rear = robustSectorDistance(180.0 - rear_sector_deg_, 180.0);
         const double rear2 = robustSectorDistance(-180.0, -180.0 + rear_sector_deg_);
         if (rear2 < s.rear)
             s.rear = rear2;
 
-        s.rear_left  = robustSectorDistance(-160.0, -110.0);
-        s.rear_right = robustSectorDistance(110.0, 160.0);
-
+        s.rear_left = robustSectorDistance(110.0, 160.0);
+        s.rear_right = robustSectorDistance(-160.0, -110.0);
         return s;
     }
 
-    bool validCell(int mx, int my) const
+    double odomX() const
     {
-        return mx >= 0 && my >= 0 &&
-               mx < static_cast<int>(latest_map_.info.width) &&
-               my < static_cast<int>(latest_map_.info.height);
+        return latest_odom_.pose.pose.position.x;
     }
 
-    int gridIndex(int mx, int my) const
+    double odomY() const
     {
-        return my * static_cast<int>(latest_map_.info.width) + mx;
+        return latest_odom_.pose.pose.position.y;
+    }
+
+    double odomDistanceFrom(double x0, double y0) const
+    {
+        const double dx = odomX() - x0;
+        const double dy = odomY() - y0;
+        return std::sqrt(dx * dx + dy * dy);
+    }
+
+    void resetProgressTracking()
+    {
+        progress_tracking_ = false;
+    }
+
+    void startProgressTracking()
+    {
+        if (!has_odom_)
+            return;
+
+        progress_tracking_ = true;
+        progress_start_time_ = ros::Time::now();
+        progress_start_x_ = odomX();
+        progress_start_y_ = odomY();
+    }
+
+    bool stuckForward() const
+    {
+        if (!progress_tracking_ || !has_odom_)
+            return false;
+
+        const double elapsed = (ros::Time::now() - progress_start_time_).toSec();
+        if (elapsed < stuck_timeout_sec_)
+            return false;
+
+        return odomDistanceFrom(progress_start_x_, progress_start_y_) < stuck_min_progress_;
+    }
+
+    void setTimedRecoveryState(State s, double sec)
+    {
+        state_ = s;
+        state_end_time_ = ros::Time::now() + ros::Duration(sec);
+    }
+
+    bool timedStateFinished() const
+    {
+        return ros::Time::now() >= state_end_time_;
+    }
+
+    bool isCorridor(const SectorInfo& s, double& corridor_width, double& center_error) const
+    {
+        const bool left_seen = std::isfinite(s.left) && s.left < corridor_wall_presence_max_;
+        const bool right_seen = std::isfinite(s.right) && s.right < corridor_wall_presence_max_;
+
+        if (!left_seen || !right_seen)
+        {
+            corridor_width = std::numeric_limits<double>::infinity();
+            center_error = 0.0;
+            return false;
+        }
+
+        corridor_width = s.left + s.right;
+        center_error = s.left - s.right;
+
+        // slightly stronger corridor validation
+        const bool roughly_parallel =
+            std::isfinite(s.front_left) && std::isfinite(s.front_right) &&
+            std::fabs(s.front_left - s.left) < 0.35 &&
+            std::fabs(s.front_right - s.right) < 0.35;
+
+        return corridor_width <= corridor_width_threshold_ && roughly_parallel;
+    }
+
+    void choosePreferredTurn(const SectorInfo& s)
+    {
+        double left_score = 0.0;
+        double right_score = 0.0;
+
+        if (std::isfinite(s.front_left)) left_score += 1.6 * s.front_left;
+        if (std::isfinite(s.left_diag))  left_score += 1.0 * s.left_diag;
+        if (std::isfinite(s.left))       left_score += 0.9 * s.left;
+        if (std::isfinite(s.rear_left))  left_score += 0.4 * s.rear_left;
+
+        if (std::isfinite(s.front_right)) right_score += 1.6 * s.front_right;
+        if (std::isfinite(s.right_diag))  right_score += 1.0 * s.right_diag;
+        if (std::isfinite(s.right))       right_score += 0.9 * s.right;
+        if (std::isfinite(s.rear_right))  right_score += 0.4 * s.rear_right;
+
+        if (std::fabs(left_score - right_score) < 0.10)
+            preferred_left_ = !preferred_left_;
+        else
+            preferred_left_ = left_score > right_score;
     }
 
     bool worldToMap(double wx, double wy, int& mx, int& my) const
@@ -395,7 +508,12 @@ private:
         mx = static_cast<int>(std::floor((wx - origin_x) / res));
         my = static_cast<int>(std::floor((wy - origin_y) / res));
 
-        return validCell(mx, my);
+        if (mx < 0 || my < 0)
+            return false;
+        if (mx >= static_cast<int>(latest_map_.info.width) || my >= static_cast<int>(latest_map_.info.height))
+            return false;
+
+        return true;
     }
 
     void mapToWorld(int mx, int my, double& wx, double& wy) const
@@ -406,6 +524,18 @@ private:
 
         wx = origin_x + (static_cast<double>(mx) + 0.5) * res;
         wy = origin_y + (static_cast<double>(my) + 0.5) * res;
+    }
+
+    int gridIndex(int mx, int my) const
+    {
+        return my * static_cast<int>(latest_map_.info.width) + mx;
+    }
+
+    bool validCell(int mx, int my) const
+    {
+        return mx >= 0 && my >= 0 &&
+               mx < static_cast<int>(latest_map_.info.width) &&
+               my < static_cast<int>(latest_map_.info.height);
     }
 
     int cellValue(int mx, int my) const
@@ -427,7 +557,84 @@ private:
 
     bool isOccupiedCell(int mx, int my) const
     {
-        return cellValue(mx, my) >= 70;
+        const int v = cellValue(mx, my);
+        return v >= 70;
+    }
+
+    bool hasUnknownNeighbor(int mx, int my) const
+    {
+        for (int dy = -1; dy <= 1; ++dy)
+        {
+            for (int dx = -1; dx <= 1; ++dx)
+            {
+                if (dx == 0 && dy == 0)
+                    continue;
+
+                const int nx = mx + dx;
+                const int ny = my + dy;
+                if (!validCell(nx, ny))
+                    continue;
+
+                if (isUnknownCell(nx, ny))
+                    return true;
+            }
+        }
+        return false;
+    }
+
+    bool isFrontierCell(int mx, int my) const
+    {
+        return isFreeCell(mx, my) && hasUnknownNeighbor(mx, my);
+    }
+
+    double visitValue(int mx, int my) const
+    {
+        if (!validCell(mx, my))
+            return visit_penalty_cap_;
+
+        const int idx = gridIndex(mx, my);
+        if (idx < 0 || idx >= static_cast<int>(visit_counts_.size()))
+            return visit_penalty_cap_;
+
+        return visit_counts_[idx];
+    }
+
+    void updateVisitMemory()
+    {
+        if (!has_map_ || !has_pose_in_map_)
+            return;
+
+        const ros::Time now = ros::Time::now();
+        if ((now - last_visit_update_time_).toSec() < 0.35)
+            return;
+
+        int mx, my;
+        if (!worldToMap(robot_map_x_, robot_map_y_, mx, my))
+            return;
+
+        const int radius_cells =
+            std::max(1, static_cast<int>(std::round(visit_update_radius_m_ / latest_map_.info.resolution)));
+
+        for (int dy = -radius_cells; dy <= radius_cells; ++dy)
+        {
+            for (int dx = -radius_cells; dx <= radius_cells; ++dx)
+            {
+                const int nx = mx + dx;
+                const int ny = my + dy;
+                if (!validCell(nx, ny))
+                    continue;
+
+                const double dist = std::sqrt(static_cast<double>(dx * dx + dy * dy));
+                if (dist > radius_cells)
+                    continue;
+
+                const int idx = gridIndex(nx, ny);
+                if (latest_map_.data[idx] == 0)
+                    visit_counts_[idx] = std::min(visit_penalty_cap_, visit_counts_[idx] + 1.0);
+            }
+        }
+
+        last_visit_update_time_ = now;
     }
 
     bool areaIsTraversable(int mx, int my, int radius_cells) const
@@ -436,12 +643,12 @@ private:
         {
             for (int dx = -radius_cells; dx <= radius_cells; ++dx)
             {
-                int nx = mx + dx;
-                int ny = my + dy;
+                const int nx = mx + dx;
+                const int ny = my + dy;
                 if (!validCell(nx, ny))
                     return false;
 
-                double dist = std::sqrt(static_cast<double>(dx * dx + dy * dy));
+                const double dist = std::sqrt(static_cast<double>(dx * dx + dy * dy));
                 if (dist > radius_cells)
                     continue;
 
@@ -469,9 +676,9 @@ private:
 
         for (double d = 0.0; d <= dist; d += step)
         {
-            double t = d / dist;
-            double wx = wx0 + t * dx;
-            double wy = wy0 + t * dy;
+            const double t = d / dist;
+            const double wx = wx0 + t * dx;
+            const double wy = wy0 + t * dy;
 
             int mx, my;
             if (!worldToMap(wx, wy, mx, my))
@@ -484,84 +691,12 @@ private:
         return true;
     }
 
-    bool hasUnknownNeighbor(int mx, int my) const
-    {
-        for (int dy = -1; dy <= 1; ++dy)
-        {
-            for (int dx = -1; dx <= 1; ++dx)
-            {
-                if (dx == 0 && dy == 0)
-                    continue;
-                int nx = mx + dx;
-                int ny = my + dy;
-                if (!validCell(nx, ny))
-                    continue;
-                if (isUnknownCell(nx, ny))
-                    return true;
-            }
-        }
-        return false;
-    }
-
-    bool isFrontierCell(int mx, int my) const
-    {
-        return isFreeCell(mx, my) && hasUnknownNeighbor(mx, my);
-    }
-
-    double visitValue(int mx, int my) const
-    {
-        if (!validCell(mx, my))
-            return visit_penalty_cap_;
-        int idx = gridIndex(mx, my);
-        if (idx < 0 || idx >= static_cast<int>(visit_counts_.size()))
-            return visit_penalty_cap_;
-        return visit_counts_[idx];
-    }
-
-    void updateVisitMemory()
-    {
-        if (!has_map_ || !has_pose_in_map_)
-            return;
-
-        ros::Time now = ros::Time::now();
-        if ((now - last_visit_update_time_).toSec() < 0.35)
-            return;
-
-        int mx, my;
-        if (!worldToMap(robot_map_x_, robot_map_y_, mx, my))
-            return;
-
-        int radius_cells =
-            std::max(1, static_cast<int>(std::round(visit_update_radius_m_ / latest_map_.info.resolution)));
-
-        for (int dy = -radius_cells; dy <= radius_cells; ++dy)
-        {
-            for (int dx = -radius_cells; dx <= radius_cells; ++dx)
-            {
-                int nx = mx + dx;
-                int ny = my + dy;
-                if (!validCell(nx, ny))
-                    continue;
-
-                double dist = std::sqrt(static_cast<double>(dx * dx + dy * dy));
-                if (dist > radius_cells)
-                    continue;
-
-                int idx = gridIndex(nx, ny);
-                if (latest_map_.data[idx] == 0)
-                    visit_counts_[idx] = std::min(visit_penalty_cap_, visit_counts_[idx] + 1.0);
-            }
-        }
-
-        last_visit_update_time_ = now;
-    }
-
     bool isGoalBlacklisted(double gx, double gy)
     {
-        ros::Time now = ros::Time::now();
+        const ros::Time now = ros::Time::now();
+
         std::vector<BlacklistedGoal> filtered;
         filtered.reserve(goal_blacklist_.size());
-
         for (size_t i = 0; i < goal_blacklist_.size(); ++i)
         {
             if (goal_blacklist_[i].until > now)
@@ -571,7 +706,7 @@ private:
 
         for (size_t i = 0; i < goal_blacklist_.size(); ++i)
         {
-            double d = std::hypot(goal_blacklist_[i].x - gx, goal_blacklist_[i].y - gy);
+            const double d = std::hypot(goal_blacklist_[i].x - gx, goal_blacklist_[i].y - gy);
             if (d <= goal_blacklist_radius_m_)
                 return true;
         }
@@ -586,20 +721,20 @@ private:
         b.until = ros::Time::now() + ros::Duration(goal_blacklist_duration_sec_);
         goal_blacklist_.push_back(b);
 
-        ROS_WARN_STREAM("Blacklisted failed goal near (" << gx << ", " << gy << ")");
+        ROS_WARN_STREAM("Blacklisted failed goal near (" << gx << ", " << gy
+                        << ") for " << goal_blacklist_duration_sec_ << " sec");
     }
 
     double estimateUnknownDensityAroundFrontierCell(int mx, int my) const
     {
         int unknown_count = 0;
         int total = 0;
-
         for (int dy = -2; dy <= 2; ++dy)
         {
             for (int dx = -2; dx <= 2; ++dx)
             {
-                int nx = mx + dx;
-                int ny = my + dy;
+                const int nx = mx + dx;
+                const int ny = my + dy;
                 if (!validCell(nx, ny))
                     continue;
 
@@ -621,9 +756,9 @@ private:
         if (!has_map_ || !has_pose_in_map_)
             return clusters;
 
-        int width = static_cast<int>(latest_map_.info.width);
-        int height = static_cast<int>(latest_map_.info.height);
-        int total = width * height;
+        const int width = static_cast<int>(latest_map_.info.width);
+        const int height = static_cast<int>(latest_map_.info.height);
+        const int total = width * height;
 
         std::vector<unsigned char> frontier_mask(total, 0);
         std::vector<unsigned char> visited(total, 0);
@@ -632,8 +767,9 @@ private:
         {
             for (int mx = 1; mx < width - 1; ++mx)
             {
+                const int idx = gridIndex(mx, my);
                 if (isFrontierCell(mx, my))
-                    frontier_mask[gridIndex(mx, my)] = 1;
+                    frontier_mask[idx] = 1;
             }
         }
 
@@ -641,7 +777,7 @@ private:
         {
             for (int mx = 1; mx < width - 1; ++mx)
             {
-                int start_idx = gridIndex(mx, my);
+                const int start_idx = gridIndex(mx, my);
                 if (!frontier_mask[start_idx] || visited[start_idx])
                     continue;
 
@@ -652,6 +788,7 @@ private:
                 cluster.nearest_x = 0.0;
                 cluster.nearest_y = 0.0;
                 cluster.unknown_density_score = 0.0;
+                cluster.width_score = 0.0;
                 cluster.score = -1e9;
                 cluster.distance_to_robot = 1e9;
                 cluster.heading_error_deg = 0.0;
@@ -665,9 +802,9 @@ private:
                     std::pair<int, int> cur = q.front();
                     q.pop();
 
-                    int cx = cur.first;
-                    int cy = cur.second;
-                    int cidx = gridIndex(cx, cy);
+                    const int cx = cur.first;
+                    const int cy = cur.second;
+                    const int cidx = gridIndex(cx, cy);
 
                     cluster.cells.push_back(cidx);
 
@@ -676,7 +813,7 @@ private:
                     cluster.centroid_x += wx;
                     cluster.centroid_y += wy;
 
-                    double dist = std::hypot(wx - robot_map_x_, wy - robot_map_y_);
+                    const double dist = std::hypot(wx - robot_map_x_, wy - robot_map_y_);
                     if (dist < cluster.distance_to_robot)
                     {
                         cluster.distance_to_robot = dist;
@@ -687,6 +824,10 @@ private:
                     cluster.visit_penalty += visitValue(cx, cy);
                     cluster.unknown_density_score += estimateUnknownDensityAroundFrontierCell(cx, cy);
 
+                    // width proxy: free clearance around frontier
+                    if (areaIsTraversable(cx, cy, 1))
+                        cluster.width_score += 1.0;
+
                     for (int dy = -1; dy <= 1; ++dy)
                     {
                         for (int dx = -1; dx <= 1; ++dx)
@@ -694,12 +835,12 @@ private:
                             if (dx == 0 && dy == 0)
                                 continue;
 
-                            int nx = cx + dx;
-                            int ny = cy + dy;
+                            const int nx = cx + dx;
+                            const int ny = cy + dy;
                             if (!validCell(nx, ny))
                                 continue;
 
-                            int nidx = gridIndex(nx, ny);
+                            const int nidx = gridIndex(nx, ny);
                             if (!frontier_mask[nidx] || visited[nidx])
                                 continue;
 
@@ -712,11 +853,12 @@ private:
                 if (static_cast<int>(cluster.cells.size()) < frontier_min_cluster_size_)
                     continue;
 
-                double denom = static_cast<double>(cluster.cells.size());
+                const double denom = static_cast<double>(cluster.cells.size());
                 cluster.centroid_x /= denom;
                 cluster.centroid_y /= denom;
                 cluster.visit_penalty /= denom;
                 cluster.unknown_density_score /= denom;
+                cluster.width_score /= denom;
 
                 clusters.push_back(cluster);
             }
@@ -725,40 +867,20 @@ private:
         return clusters;
     }
 
-    bool corridorOpeningLeft(const SectorInfo& s) const
-    {
-        if (!in_corridor_)
-            return false;
-
-        bool side_open = std::isfinite(s.left) && s.left > branch_opening_dist_;
-        bool diag_open = std::isfinite(s.left_diag) && s.left_diag > branch_opening_dist_;
-        return side_open || diag_open;
-    }
-
-    bool corridorOpeningRight(const SectorInfo& s) const
-    {
-        if (!in_corridor_)
-            return false;
-
-        bool side_open = std::isfinite(s.right) && s.right > branch_opening_dist_;
-        bool diag_open = std::isfinite(s.right_diag) && s.right_diag > branch_opening_dist_;
-        return side_open || diag_open;
-    }
-
     bool computeGoalForCluster(FrontierCluster& cluster, double& goal_x, double& goal_y)
     {
         if (!has_map_ || !has_pose_in_map_)
             return false;
 
-        double dx = cluster.centroid_x - robot_map_x_;
-        double dy = cluster.centroid_y - robot_map_y_;
-        double dist = std::hypot(dx, dy);
+        const double dx = cluster.centroid_x - robot_map_x_;
+        const double dy = cluster.centroid_y - robot_map_y_;
+        const double dist = std::hypot(dx, dy);
 
         if (dist < 1e-6)
             return false;
 
-        double ux = dx / dist;
-        double uy = dy / dist;
+        const double ux = dx / dist;
+        const double uy = dy / dist;
 
         goal_x = cluster.centroid_x - frontier_goal_pullback_m_ * ux;
         goal_y = cluster.centroid_y - frontier_goal_pullback_m_ * uy;
@@ -767,7 +889,7 @@ private:
         if (!worldToMap(goal_x, goal_y, mx, my))
             return false;
 
-        int clearance_cells =
+        const int clearance_cells =
             std::max(1, static_cast<int>(std::round(frontier_robot_clearance_m_ / latest_map_.info.resolution)));
 
         if (!isFreeCell(mx, my))
@@ -785,7 +907,7 @@ private:
         return true;
     }
 
-    bool selectBestFrontierGoal(const SectorInfo& s, double& goal_x, double& goal_y, double& heading_deg_out)
+    bool selectBestFrontierGoal(double& goal_x, double& goal_y, double& heading_deg_out)
     {
         if (!has_map_ || !has_pose_in_map_)
             return false;
@@ -798,60 +920,48 @@ private:
         best.score = -1e9;
         bool found = false;
 
-        bool left_opening = corridorOpeningLeft(s);
-        bool right_opening = corridorOpeningRight(s);
-
         for (size_t i = 0; i < clusters.size(); ++i)
         {
             double gx, gy;
             if (!computeGoalForCluster(clusters[i], gx, gy))
                 continue;
 
-            double dx = gx - robot_map_x_;
-            double dy = gy - robot_map_y_;
-            double dist = std::hypot(dx, dy);
+            const double dx = gx - robot_map_x_;
+            const double dy = gy - robot_map_y_;
+            const double dist = std::hypot(dx, dy);
             if (dist < 1e-4)
                 continue;
 
-            double target_yaw = std::atan2(dy, dx);
-            double heading_err = wrapAngleRad(target_yaw - robot_map_yaw_);
-            double heading_err_deg = rad2deg(heading_err);
+            const double target_yaw = std::atan2(dy, dx);
+            const double heading_err = wrapAngleRad(target_yaw - robot_map_yaw_);
+            const double heading_err_deg = rad2deg(heading_err);
 
-            double scan_clear = robustSectorDistance(heading_err_deg - 12.0, heading_err_deg + 12.0);
+            // dynamic obstacle suppression
+            const double scan_clear = headingScanClearanceDeg(heading_err_deg, 12.0);
             if (std::isfinite(scan_clear) && scan_clear < front_block_dist_)
                 continue;
 
-            double size_term =
+            const double size_term =
                 frontier_size_weight_ * std::log(1.0 + static_cast<double>(clusters[i].cells.size()));
-            double dist_term = frontier_distance_weight_ * dist;
-            double heading_term =
+            const double dist_term = frontier_distance_weight_ * dist;
+            const double heading_term =
                 frontier_heading_weight_ * (1.0 - clamp(std::fabs(heading_err_deg) / 140.0, 0.0, 1.0));
-            double visit_term = frontier_visit_penalty_weight_ * clusters[i].visit_penalty;
-            double unknown_term = frontier_unknown_density_weight_ * clusters[i].unknown_density_score;
+            const double visit_term = frontier_visit_penalty_weight_ * clusters[i].visit_penalty;
+            const double unknown_term = frontier_unknown_density_weight_ * clusters[i].unknown_density_score;
+            const double narrow_penalty =
+                frontier_narrow_penalty_weight_ * (1.0 - clamp(clusters[i].width_score, 0.0, 1.0));
 
             double same_goal_bonus = 0.0;
             if (last_goal_valid_)
             {
-                double dg = std::hypot(gx - last_goal_x_, gy - last_goal_y_);
+                const double dg = std::hypot(gx - last_goal_x_, gy - last_goal_y_);
                 if (dg < 0.50)
                     same_goal_bonus = frontier_same_goal_bonus_;
             }
 
-            // NEW: corridor branch preference
-            double branch_bonus = 0.0;
-            if (in_corridor_)
-            {
-                if (left_opening && heading_err_deg > 15.0)
-                    branch_bonus += branch_bonus_weight_;
-                if (right_opening && heading_err_deg < -15.0)
-                    branch_bonus += branch_bonus_weight_;
-                if (!left_opening && !right_opening && std::fabs(heading_err_deg) < 20.0)
-                    branch_bonus += 0.5 * branch_bonus_weight_;
-            }
-
             clusters[i].score =
-                size_term - dist_term + heading_term + unknown_term +
-                same_goal_bonus + branch_bonus - visit_term;
+                size_term - dist_term + heading_term + unknown_term + same_goal_bonus
+                - visit_term - narrow_penalty;
             clusters[i].heading_error_deg = heading_err_deg;
             clusters[i].distance_to_robot = dist;
 
@@ -869,13 +979,10 @@ private:
             return false;
 
         ROS_INFO_THROTTLE(1.0,
-                          "Frontier selected: score=%.2f dist=%.2f heading=%.1f cells=%zu visit_pen=%.2f unk=%.2f corridor=%s openL=%s openR=%s",
+                          "Frontier selected: score=%.2f dist=%.2f heading=%.1f cells=%zu visit_pen=%.2f unk=%.2f width=%.2f",
                           best.score, best.distance_to_robot, best.heading_error_deg,
                           best.cells.size(), best.visit_penalty,
-                          best.unknown_density_score,
-                          in_corridor_ ? "yes" : "no",
-                          left_opening ? "yes" : "no",
-                          right_opening ? "yes" : "no");
+                          best.unknown_density_score, best.width_score);
 
         return true;
     }
@@ -883,24 +990,24 @@ private:
     bool computeLocalWaypoint(double goal_x, double goal_y,
                               double& wx_out, double& wy_out, double& heading_deg_out)
     {
-        double dx = goal_x - robot_map_x_;
-        double dy = goal_y - robot_map_y_;
-        double dist = std::hypot(dx, dy);
+        const double dx = goal_x - robot_map_x_;
+        const double dy = goal_y - robot_map_y_;
+        const double dist = std::hypot(dx, dy);
         if (dist < 1e-6)
             return false;
 
-        double ux = dx / dist;
-        double uy = dy / dist;
+        const double ux = dx / dist;
+        const double uy = dy / dist;
 
-        double max_look = std::min(waypoint_max_lookahead_m_, dist);
+        const double max_look = std::min(waypoint_max_lookahead_m_, dist);
         double chosen_x = goal_x;
         double chosen_y = goal_y;
         bool found = false;
 
         for (double d = waypoint_step_m_; d <= max_look + 1e-6; d += waypoint_step_m_)
         {
-            double tx = robot_map_x_ + d * ux;
-            double ty = robot_map_y_ + d * uy;
+            const double tx = robot_map_x_ + d * ux;
+            const double ty = robot_map_y_ + d * uy;
 
             int mx, my;
             if (!worldToMap(tx, ty, mx, my))
@@ -926,9 +1033,9 @@ private:
             chosen_y = goal_y;
         }
 
-        double hx = chosen_x - robot_map_x_;
-        double hy = chosen_y - robot_map_y_;
-        double target_yaw = std::atan2(hy, hx);
+        const double hx = chosen_x - robot_map_x_;
+        const double hy = chosen_y - robot_map_y_;
+        const double target_yaw = std::atan2(hy, hx);
         heading_deg_out = rad2deg(wrapAngleRad(target_yaw - robot_map_yaw_));
 
         wx_out = chosen_x;
@@ -950,12 +1057,12 @@ private:
         if (!goal_progress_tracking_)
             return false;
 
-        double elapsed = (ros::Time::now() - goal_track_start_time_).toSec();
+        const double elapsed = (ros::Time::now() - goal_track_start_time_).toSec();
         if (elapsed < goal_progress_timeout_sec_)
             return false;
 
-        double now_dist = std::hypot(tracked_goal_x_ - robot_map_x_, tracked_goal_y_ - robot_map_y_);
-        double progress = goal_track_start_dist_ - now_dist;
+        const double now_dist = std::hypot(tracked_goal_x_ - robot_map_x_, tracked_goal_y_ - robot_map_y_);
+        const double progress = goal_track_start_dist_ - now_dist;
         return progress < goal_progress_min_dist_m_;
     }
 
@@ -964,14 +1071,14 @@ private:
         if (!last_goal_valid_ || !has_pose_in_map_)
             return;
 
-        double dist_to_goal = std::hypot(last_goal_x_ - robot_map_x_, last_goal_y_ - robot_map_y_);
+        const double dist_to_goal = std::hypot(last_goal_x_ - robot_map_x_, last_goal_y_ - robot_map_y_);
         if (dist_to_goal <= goal_reach_dist_m_)
         {
             goal_fail_count_ = 0;
             goal_progress_tracking_ = false;
             last_goal_valid_ = false;
             state_ = SELECT_GOAL;
-            ROS_INFO("Goal reached, selecting next frontier.");
+            ROS_INFO("Frontier goal reached, selecting a new goal.");
             return;
         }
 
@@ -980,7 +1087,7 @@ private:
 
         if (goalProgressFailed())
         {
-            ++goal_fail_count_;
+            goal_fail_count_++;
             goal_progress_tracking_ = false;
             ROS_WARN_STREAM("Goal progress failed. Count=" << goal_fail_count_);
 
@@ -988,88 +1095,296 @@ private:
             {
                 addGoalToBlacklist(last_goal_x_, last_goal_y_);
                 goal_fail_count_ = 0;
+                last_goal_valid_ = false;
+            }
+            else
+            {
+                last_goal_valid_ = false;
             }
 
-            last_goal_valid_ = false;
             state_ = SELECT_GOAL;
         }
     }
 
-    void startProgressTracking()
+    double computeBaseForwardSpeed(const SectorInfo& s, double heading_deg) const
     {
-        if (!has_odom_)
-            return;
+        double base_speed;
 
-        progress_tracking_ = true;
-        progress_start_time_ = ros::Time::now();
-        progress_start_x_ = latest_odom_.pose.pose.position.x;
-        progress_start_y_ = latest_odom_.pose.pose.position.y;
+        if (!std::isfinite(s.front))
+            base_speed = forward_speed_max_;
+        else if (s.front <= front_block_dist_)
+            base_speed = 0.0;
+        else if (s.front >= front_clear_dist_)
+            base_speed = forward_speed_max_;
+        else if (s.front <= front_caution_dist_)
+        {
+            const double ratio = clamp((s.front - front_block_dist_) /
+                                       std::max(0.001, front_caution_dist_ - front_block_dist_), 0.0, 1.0);
+            base_speed = forward_speed_min_ + ratio * (forward_speed_recovery_ - forward_speed_min_);
+        }
+        else
+        {
+            const double ratio = clamp((s.front - front_caution_dist_) /
+                                       std::max(0.001, front_clear_dist_ - front_caution_dist_), 0.0, 1.0);
+            base_speed = forward_speed_recovery_ + ratio * (forward_speed_max_ - forward_speed_recovery_);
+        }
+
+        if (in_corridor_)
+        {
+            if (std::isfinite(s.front) && s.front < corridor_front_slow_dist_)
+            {
+                const double ratio = clamp((s.front - front_block_dist_) /
+                                           std::max(0.001, corridor_front_slow_dist_ - front_block_dist_), 0.0, 1.0);
+                base_speed = forward_speed_min_ + ratio * (corridor_speed_max_ - forward_speed_min_);
+            }
+            else
+            {
+                base_speed = std::min(base_speed, corridor_speed_max_);
+            }
+        }
+
+        const double heading_penalty = clamp(std::fabs(heading_deg) / (in_corridor_ ? 60.0 : 95.0), 0.0, 1.0);
+        const double speed_scale = clamp(1.0 - 0.40 * heading_penalty, 0.60, 1.0);
+        return clamp(base_speed * speed_scale, forward_speed_min_, forward_speed_max_);
     }
 
-    bool stuckForward() const
+    bool trajectoryEndpointTraversable(double x0, double y0, double yaw0,
+                                      double v, double w,
+                                      double& xf, double& yf, double& yawf) const
     {
-        if (!progress_tracking_ || !has_odom_)
-            return false;
+        xf = x0;
+        yf = y0;
+        yawf = yaw0;
 
-        double elapsed = (ros::Time::now() - progress_start_time_).toSec();
-        if (elapsed < stuck_timeout_sec_)
-            return false;
+        for (double t = 0.0; t < traj_sim_time_sec_; t += traj_dt_sec_)
+        {
+            yawf = wrapAngleRad(yawf + w * traj_dt_sec_);
+            xf += v * std::cos(yawf) * traj_dt_sec_;
+            yf += v * std::sin(yawf) * traj_dt_sec_;
 
-        double dx = latest_odom_.pose.pose.position.x - progress_start_x_;
-        double dy = latest_odom_.pose.pose.position.y - progress_start_y_;
-        double dist = std::sqrt(dx * dx + dy * dy);
-        return dist < stuck_min_progress_;
+            int mx, my;
+            if (!worldToMap(xf, yf, mx, my))
+                return false;
+
+            const int clearance_cells =
+                std::max(1, static_cast<int>(std::round(frontier_robot_clearance_m_ / latest_map_.info.resolution)));
+
+            if (!areaIsTraversable(mx, my, clearance_cells))
+                return false;
+        }
+
+        return true;
+    }
+
+    TrajectoryCandidate chooseBestTrajectory(const SectorInfo& s,
+                                             double waypoint_x, double waypoint_y,
+                                             double center_error)
+    {
+        std::vector<TrajectoryCandidate> candidates;
+        const double desired_heading =
+            rad2deg(wrapAngleRad(std::atan2(waypoint_y - robot_map_y_, waypoint_x - robot_map_x_) - robot_map_yaw_));
+
+        const double v_forward = computeBaseForwardSpeed(s, desired_heading);
+        const bool rear_blocked = std::isfinite(s.rear) && s.rear < rear_clear_dist_;
+
+        // candidate set
+        std::vector<double> v_set;
+        v_set.push_back(v_forward);
+        v_set.push_back(std::max(forward_speed_min_, 0.75 * v_forward));
+        if (!rear_blocked && ros::Time::now() >= reverse_cooldown_until_)
+            v_set.push_back(reverse_speed_);
+
+        std::vector<double> w_set;
+        w_set.push_back(-turn_speed_soft_);
+        w_set.push_back(-0.5 * turn_speed_soft_);
+        w_set.push_back(0.0);
+        w_set.push_back(0.5 * turn_speed_soft_);
+        w_set.push_back(turn_speed_soft_);
+
+        if (std::fabs(desired_heading) > 25.0)
+        {
+            w_set.push_back(-turn_speed_hard_);
+            w_set.push_back(turn_speed_hard_);
+        }
+
+        TrajectoryCandidate best;
+        best.score = -1e9;
+        best.v = 0.0;
+        best.w = 0.0;
+        best.final_x = robot_map_x_;
+        best.final_y = robot_map_y_;
+        best.final_yaw = robot_map_yaw_;
+
+        for (size_t iv = 0; iv < v_set.size(); ++iv)
+        {
+            for (size_t iw = 0; iw < w_set.size(); ++iw)
+            {
+                const double v = v_set[iv];
+                const double w = w_set[iw];
+
+                // do not consider reverse if rear blocked
+                if (v < 0.0 && rear_blocked)
+                    continue;
+
+                double xf, yf, yawf;
+                if (!trajectoryEndpointTraversable(robot_map_x_, robot_map_y_, robot_map_yaw_, v, w, xf, yf, yawf))
+                    continue;
+
+                const double dist_before = std::hypot(waypoint_x - robot_map_x_, waypoint_y - robot_map_y_);
+                const double dist_after = std::hypot(waypoint_x - xf, waypoint_y - yf);
+                const double progress = dist_before - dist_after;
+
+                const double final_heading_err =
+                    std::fabs(rad2deg(wrapAngleRad(std::atan2(waypoint_y - yf, waypoint_x - xf) - yawf)));
+
+                int mx, my;
+                double visit_pen = 0.0;
+                if (worldToMap(xf, yf, mx, my))
+                    visit_pen = visitValue(mx, my);
+
+                // dynamic obstacle suppression with scan
+                const double heading_sector =
+                    rad2deg(wrapAngleRad(std::atan2(yf - robot_map_y_, xf - robot_map_x_) - robot_map_yaw_));
+                const double scan_clear = headingScanClearanceDeg(heading_sector, 10.0);
+
+                double scan_clear_norm = 1.0;
+                if (std::isfinite(scan_clear))
+                    scan_clear_norm = clamp(scan_clear / front_clear_dist_, 0.0, 1.2);
+
+                double smoothness = 1.0 - clamp(std::fabs(w) / std::max(0.001, turn_speed_hard_), 0.0, 1.0);
+
+                double corridor_bonus = 0.0;
+                if (in_corridor_ && v > 0.0)
+                {
+                    corridor_bonus =
+                        1.0 - clamp(std::fabs(center_error) / std::max(0.001, corridor_width_threshold_), 0.0, 1.0);
+                }
+
+                double reverse_penalty = (v < 0.0) ? 1.4 : 0.0;
+
+                double score =
+                    traj_goal_weight_ * (1.0 - clamp(final_heading_err / 120.0, 0.0, 1.0)) +
+                    traj_progress_weight_ * progress +
+                    traj_clearance_weight_ * scan_clear_norm +
+                    traj_smoothness_weight_ * smoothness +
+                    0.45 * corridor_bonus -
+                    traj_visit_weight_ * visit_pen -
+                    reverse_penalty;
+
+                if (v > 0.0 && std::isfinite(s.rear) && s.rear < rear_clear_dist_)
+                    score += 0.3; // prefer forward if rear has obstacle
+
+                if (score > best.score)
+                {
+                    best.score = score;
+                    best.v = v;
+                    best.w = w;
+                    best.final_x = xf;
+                    best.final_y = yf;
+                    best.final_yaw = yawf;
+                }
+            }
+        }
+
+        return best;
+    }
+
+    void selectGoalIfNeeded()
+    {
+        const ros::Time now = ros::Time::now();
+        const bool time_to_reselect =
+            last_frontier_select_time_.isZero() ||
+            (now - last_frontier_select_time_).toSec() >= frontier_reselect_period_sec_;
+
+        if (!time_to_reselect && last_goal_valid_)
+            return;
+
+        double gx = 0.0, gy = 0.0, heading_deg = 0.0;
+        if (selectBestFrontierGoal(gx, gy, heading_deg))
+        {
+            last_goal_x_ = gx;
+            last_goal_y_ = gy;
+            last_heading_deg_ = heading_deg;
+            last_goal_valid_ = true;
+            last_frontier_select_time_ = now;
+            goal_progress_tracking_ = false;
+            state_ = DRIVE_TO_WAYPOINT;
+            ROS_INFO_STREAM("Selected new frontier goal at (" << gx << ", " << gy << ")");
+        }
+        else
+        {
+            last_goal_valid_ = false;
+        }
     }
 
     void beginRecovery(const SectorInfo& s, bool emergency)
     {
-        ++recovery_count_;
+        recovery_count_++;
         choosePreferredTurn(s);
 
-        bool rear_safe = std::isfinite(s.rear) && s.rear > rear_clear_dist_;
-        bool rear_emergency = std::isfinite(s.rear) && s.rear < rear_emergency_dist_;
-        bool front_emergency = std::isfinite(s.front) && s.front < front_emergency_dist_;
+        const bool rear_safe = std::isfinite(s.rear) && s.rear > rear_clear_dist_;
+        const bool rear_emergency = std::isfinite(s.rear) && s.rear < rear_emergency_dist_;
+        const bool front_emergency = std::isfinite(s.front) && s.front < front_emergency_dist_;
 
-        if (!rear_safe || rear_emergency || in_corridor_)
+        // Recovery arbitration:
+        // 1) if rear blocked -> never reverse
+        if (!rear_safe || rear_emergency)
         {
-            recovery_turn_left_ = preferred_left_;
             state_ = RECOVERY_TURN;
-            state_end_time_ = ros::Time::now() + ros::Duration(turn_duration_sec_);
+            setTimedRecoveryState(preferred_left_ ? RECOVERY_TURN : RECOVERY_TURN, turn_duration_sec_);
+            recovery_turn_left_ = preferred_left_;
+            resetProgressTracking();
             return;
         }
 
-        double left_space = finiteOr(s.front_left, 2.0) + 0.5 * finiteOr(s.left_diag, 1.0);
-        double right_space = finiteOr(s.front_right, 2.0) + 0.5 * finiteOr(s.right_diag, 1.0);
-        bool strong_side_escape = std::max(left_space, right_space) > 1.05;
+        // 2) corridor -> prefer turn only
+        if (in_corridor_)
+        {
+            state_ = RECOVERY_TURN;
+            setTimedRecoveryState(preferred_left_ ? RECOVERY_TURN : RECOVERY_TURN, turn_duration_sec_);
+            recovery_turn_left_ = preferred_left_;
+            resetProgressTracking();
+            return;
+        }
+
+        // 3) side escape if open
+        const double left_space = finiteOr(s.front_left, 2.0) + 0.5 * finiteOr(s.left_diag, 1.0);
+        const double right_space = finiteOr(s.front_right, 2.0) + 0.5 * finiteOr(s.right_diag, 1.0);
+        const bool strong_side_escape = std::max(left_space, right_space) > 1.05;
 
         if (strong_side_escape && !front_emergency)
         {
             recovery_turn_left_ = left_space >= right_space;
             state_ = RECOVERY_TURN;
-            state_end_time_ = ros::Time::now() + ros::Duration(turn_duration_sec_);
+            setTimedRecoveryState(RECOVERY_TURN, turn_duration_sec_);
+            resetProgressTracking();
             return;
         }
 
+        // 4) reverse only if allowed
         if (ros::Time::now() >= reverse_cooldown_until_ &&
             reverse_chain_count_ < max_reverse_chain_ &&
             rear_safe)
         {
             recovery_turn_left_ = preferred_left_;
             state_ = RECOVERY_REVERSE;
-            state_end_time_ = ros::Time::now() + ros::Duration(reverse_duration_sec_);
+            setTimedRecoveryState(RECOVERY_REVERSE, reverse_duration_sec_);
             reverse_chain_count_++;
             reverse_cooldown_until_ = ros::Time::now() + ros::Duration(reverse_cooldown_sec_);
+            resetProgressTracking();
             return;
         }
 
+        // 5) final escape
         recovery_turn_left_ = preferred_left_;
         state_ = RECOVERY_ESCAPE;
-        state_end_time_ = ros::Time::now() + ros::Duration(escape_turn_duration_sec_);
+        setTimedRecoveryState(RECOVERY_ESCAPE, escape_turn_duration_sec_);
         recovery_count_ = 0;
         reverse_chain_count_ = 0;
+        resetProgressTracking();
     }
 
-    geometry_msgs::Twist recoveryCommand() const
+    geometry_msgs::Twist commandForRecoveryState() const
     {
         geometry_msgs::Twist cmd;
 
@@ -1102,7 +1417,7 @@ private:
         if (state_ == RECOVERY_REVERSE)
         {
             state_ = RECOVERY_TURN;
-            state_end_time_ = ros::Time::now() + ros::Duration(turn_duration_sec_);
+            setTimedRecoveryState(RECOVERY_TURN, turn_duration_sec_);
             return;
         }
 
@@ -1125,167 +1440,6 @@ private:
 
         return out;
     }
-
-    void selectGoalIfNeeded(const SectorInfo& s)
-    {
-        ros::Time now = ros::Time::now();
-        bool time_to_reselect =
-            last_frontier_select_time_.isZero() ||
-            (now - last_frontier_select_time_).toSec() >= frontier_reselect_period_sec_;
-
-        if (!time_to_reselect && last_goal_valid_)
-            return;
-
-        double gx = 0.0, gy = 0.0, heading_deg = 0.0;
-        if (selectBestFrontierGoal(s, gx, gy, heading_deg))
-        {
-            last_goal_x_ = gx;
-            last_goal_y_ = gy;
-            last_goal_valid_ = true;
-            last_frontier_select_time_ = now;
-            goal_progress_tracking_ = false;
-            state_ = DRIVE_TO_WAYPOINT;
-            ROS_INFO_STREAM("Selected frontier goal at (" << gx << ", " << gy << ")");
-        }
-        else
-        {
-            last_goal_valid_ = false;
-        }
-    }
-
-    double computeForwardSpeed(const SectorInfo& s, double heading_deg) const
-    {
-        double base_speed;
-
-        if (!std::isfinite(s.front))
-            base_speed = forward_speed_max_;
-        else if (s.front <= front_block_dist_)
-            base_speed = 0.0;
-        else if (s.front >= front_clear_dist_)
-            base_speed = forward_speed_max_;
-        else if (s.front <= front_caution_dist_)
-        {
-            double ratio = clamp((s.front - front_block_dist_) /
-                                 std::max(0.001, front_caution_dist_ - front_block_dist_), 0.0, 1.0);
-            base_speed = forward_speed_min_ + ratio * (forward_speed_recovery_ - forward_speed_min_);
-        }
-        else
-        {
-            double ratio = clamp((s.front - front_caution_dist_) /
-                                 std::max(0.001, front_clear_dist_ - front_caution_dist_), 0.0, 1.0);
-            base_speed = forward_speed_recovery_ + ratio * (forward_speed_max_ - forward_speed_recovery_);
-        }
-
-        if (in_corridor_)
-            base_speed = std::min(base_speed, corridor_speed_max_);
-
-        double heading_penalty = clamp(std::fabs(heading_deg) / (in_corridor_ ? 60.0 : 95.0), 0.0, 1.0);
-        double speed_scale = clamp(1.0 - 0.40 * heading_penalty, 0.60, 1.0);
-        return clamp(base_speed * speed_scale, forward_speed_min_, forward_speed_max_);
-    }
-
-    geometry_msgs::Twist computeDriveCommand(const SectorInfo& s, double center_error)
-    {
-        geometry_msgs::Twist cmd;
-
-        if (!last_goal_valid_)
-            return cmd;
-
-        double waypoint_x = last_goal_x_;
-        double waypoint_y = last_goal_y_;
-        double heading_deg = 0.0;
-
-        if (!computeLocalWaypoint(last_goal_x_, last_goal_y_, waypoint_x, waypoint_y, heading_deg))
-        {
-            last_goal_valid_ = false;
-            state_ = SELECT_GOAL;
-            return cmd;
-        }
-
-        double steer = deg2rad(heading_deg);
-
-        if (in_corridor_)
-        {
-            steer += corridor_center_gain_ * center_error;
-            if (std::isfinite(s.front_left) && std::isfinite(s.front_right))
-                steer += corridor_heading_gain_ * (s.front_left - s.front_right);
-        }
-
-        if (std::isfinite(s.front_left) && s.front_left < front_clear_dist_)
-            steer -= 0.65 * clamp((front_clear_dist_ - s.front_left) / std::max(0.001, front_clear_dist_), 0.0, 1.0);
-
-        if (std::isfinite(s.front_right) && s.front_right < front_clear_dist_)
-            steer += 0.65 * clamp((front_clear_dist_ - s.front_right) / std::max(0.001, front_clear_dist_), 0.0, 1.0);
-
-        if (std::isfinite(s.left) && s.left < side_emergency_dist_)
-            steer -= 0.80;
-        else if (std::isfinite(s.left) && s.left < side_block_dist_)
-            steer -= 0.40;
-
-        if (std::isfinite(s.right) && s.right < side_emergency_dist_)
-            steer += 0.80;
-        else if (std::isfinite(s.right) && s.right < side_block_dist_)
-            steer += 0.40;
-
-        if (std::fabs(steer) < steering_deadband_)
-            steer = 0.0;
-
-        cmd.angular.z = clamp(steer, -turn_speed_soft_, turn_speed_soft_);
-        cmd.linear.x = computeForwardSpeed(s, heading_deg);
-
-        return cmd;
-    }
-
-
-
-
-
-    bool isCorridor(const SectorInfo& s, double& corridor_width, double& center_error) const
-    {
-        const bool left_seen = std::isfinite(s.left) && s.left < corridor_wall_presence_max_;
-        const bool right_seen = std::isfinite(s.right) && s.right < corridor_wall_presence_max_;
-
-        if (!left_seen || !right_seen)
-        {
-            corridor_width = std::numeric_limits<double>::infinity();
-            center_error = 0.0;
-            return false;
-        }
-
-        corridor_width = s.left + s.right;
-        center_error = s.left - s.right;
-
-        const bool roughly_parallel =
-            std::isfinite(s.front_left) && std::isfinite(s.front_right) &&
-            std::fabs(s.front_left - s.left) < 0.35 &&
-            std::fabs(s.front_right - s.right) < 0.35;
-
-        return corridor_width <= corridor_width_threshold_ && roughly_parallel;
-    }
-
-    void choosePreferredTurn(const SectorInfo& s)
-    {
-        double left_score = 0.0;
-        double right_score = 0.0;
-
-        if (std::isfinite(s.front_left))  left_score  += 1.6 * s.front_left;
-        if (std::isfinite(s.left_diag))   left_score  += 1.0 * s.left_diag;
-        if (std::isfinite(s.left))        left_score  += 0.9 * s.left;
-        if (std::isfinite(s.rear_left))   left_score  += 0.4 * s.rear_left;
-
-        if (std::isfinite(s.front_right)) right_score += 1.6 * s.front_right;
-        if (std::isfinite(s.right_diag))  right_score += 1.0 * s.right_diag;
-        if (std::isfinite(s.right))       right_score += 0.9 * s.right;
-        if (std::isfinite(s.rear_right))  right_score += 0.4 * s.rear_right;
-
-        if (std::fabs(left_score - right_score) < 0.10)
-            preferred_left_ = !preferred_left_;
-        else
-            preferred_left_ = left_score > right_score;
-    }
-
-
-
 
     void timerCallback(const ros::TimerEvent&)
     {
@@ -1312,24 +1466,26 @@ private:
         double center_error = 0.0;
         in_corridor_ = isCorridor(s, corridor_width, center_error);
 
+        // Active recovery states
         if (state_ == RECOVERY_TURN || state_ == RECOVERY_REVERSE || state_ == RECOVERY_ESCAPE)
         {
-            if (ros::Time::now() >= state_end_time_)
+            if (timedStateFinished())
                 advanceRecoveryState();
 
-            geometry_msgs::Twist cmd = recoveryCommand();
+            geometry_msgs::Twist cmd = commandForRecoveryState();
             cmd = safetyGate(cmd, s);
             cmd_pub_.publish(cmd);
             return;
         }
 
-        bool front_emergency = std::isfinite(s.front) && s.front < front_emergency_dist_;
-        bool front_block = std::isfinite(s.front) && s.front < front_block_dist_;
+        // Safety-triggered recovery
+        const bool front_emergency = std::isfinite(s.front) && s.front < front_emergency_dist_;
+        const bool front_block = std::isfinite(s.front) && s.front < front_block_dist_;
 
         if (front_emergency)
         {
             beginRecovery(s, true);
-            geometry_msgs::Twist cmd = recoveryCommand();
+            geometry_msgs::Twist cmd = commandForRecoveryState();
             cmd = safetyGate(cmd, s);
             cmd_pub_.publish(cmd);
             return;
@@ -1338,7 +1494,7 @@ private:
         if (front_block)
         {
             beginRecovery(s, false);
-            geometry_msgs::Twist cmd = recoveryCommand();
+            geometry_msgs::Twist cmd = commandForRecoveryState();
             cmd = safetyGate(cmd, s);
             cmd_pub_.publish(cmd);
             return;
@@ -1350,60 +1506,110 @@ private:
         if (stuckForward())
         {
             beginRecovery(s, false);
-            geometry_msgs::Twist cmd = recoveryCommand();
+            geometry_msgs::Twist cmd = commandForRecoveryState();
             cmd = safetyGate(cmd, s);
             cmd_pub_.publish(cmd);
             return;
         }
 
+        // Hierarchical planning
         if (state_ == SELECT_GOAL || !last_goal_valid_)
-            selectGoalIfNeeded(s);
+            selectGoalIfNeeded();
 
         geometry_msgs::Twist cmd;
+
         if (!last_goal_valid_)
         {
             choosePreferredTurn(s);
-            bool rear_blocked = std::isfinite(s.rear) && s.rear < rear_clear_dist_;
+            const bool rear_blocked = std::isfinite(s.rear) && s.rear < rear_clear_dist_;
             cmd.linear.x = rear_blocked ? forward_speed_min_ : forward_speed_recovery_;
             cmd.angular.z = preferred_left_ ? 0.35 : -0.35;
-        }
-        else
-        {
-            cmd = computeDriveCommand(s, center_error);
+            cmd = safetyGate(cmd, s);
+            cmd_pub_.publish(cmd);
+            return;
         }
 
-        bool rear_blocked = std::isfinite(s.rear) && s.rear < rear_clear_dist_;
-        if (rear_blocked && cmd.linear.x < 0.0)
+        double waypoint_x = last_goal_x_;
+        double waypoint_y = last_goal_y_;
+        double heading_deg = 0.0;
+
+        if (!computeLocalWaypoint(last_goal_x_, last_goal_y_, waypoint_x, waypoint_y, heading_deg))
+        {
+            last_goal_valid_ = false;
+            state_ = SELECT_GOAL;
+            choosePreferredTurn(s);
+            cmd.linear.x = forward_speed_min_;
+            cmd.angular.z = preferred_left_ ? 0.40 : -0.40;
+            cmd = safetyGate(cmd, s);
+            cmd_pub_.publish(cmd);
+            return;
+        }
+
+        TrajectoryCandidate best = chooseBestTrajectory(s, waypoint_x, waypoint_y, center_error);
+
+        if (best.score < -1e8)
+        {
+            beginRecovery(s, false);
+            cmd = commandForRecoveryState();
+            cmd = safetyGate(cmd, s);
+            cmd_pub_.publish(cmd);
+            return;
+        }
+
+        cmd.linear.x = best.v;
+        cmd.angular.z = best.w;
+
+        // corridor centering correction
+        if (in_corridor_ && cmd.linear.x > 0.0)
+        {
+            cmd.angular.z += corridor_center_gain_ * center_error;
+            if (std::isfinite(s.front_left) && std::isfinite(s.front_right))
+                cmd.angular.z += corridor_heading_gain_ * (s.front_left - s.front_right);
+            cmd.angular.z = clamp(cmd.angular.z, -turn_speed_soft_, turn_speed_soft_);
+            cmd.linear.x = std::min(cmd.linear.x, corridor_speed_max_);
+        }
+
+        // dynamic obstacle suppression: do not be attracted to feet / short-lived close obstacles
+        const double heading_clear = headingScanClearanceDeg(heading_deg, 10.0);
+        if (std::isfinite(heading_clear) && heading_clear < front_block_dist_ && cmd.linear.x > 0.0)
+        {
+            cmd.linear.x = 0.0;
+            cmd.angular.z = (preferred_left_ ? 1.0 : -1.0) * turn_speed_soft_;
+        }
+
+        // if rear blocked, bias forward only
+        if (std::isfinite(s.rear) && s.rear < rear_clear_dist_ && cmd.linear.x < 0.0)
             cmd.linear.x = 0.0;
 
         cmd = safetyGate(cmd, s);
         cmd_pub_.publish(cmd);
+        state_ = DRIVE_TO_WAYPOINT;
 
         if (has_odom_ && progress_tracking_)
         {
-            double dx = latest_odom_.pose.pose.position.x - progress_start_x_;
-            double dy = latest_odom_.pose.pose.position.y - progress_start_y_;
-            double dist = std::sqrt(dx * dx + dy * dy);
+            const double dist = odomDistanceFrom(progress_start_x_, progress_start_y_);
             if (dist >= stuck_min_progress_)
             {
                 startProgressTracking();
                 if (std::isfinite(s.front) && s.front > front_caution_dist_)
                     reverse_chain_count_ = 0;
+                if (std::isfinite(s.front_wide) && s.front_wide > front_caution_dist_)
+                    recovery_count_ = 0;
             }
         }
 
         ROS_INFO_THROTTLE(1.0,
-                          "state=%d front=%.2f rear=%.2f left=%.2f right=%.2f corridor=%s openL=%s openR=%s goal_valid=%s fail=%d",
+                          "state=%d front=%.2f rear=%.2f left=%.2f right=%.2f corridor=%s goal_valid=%s goal_fail=%d waypoint=(%.2f,%.2f) v=%.2f w=%.2f",
                           static_cast<int>(state_),
                           finiteOr(s.front, -1.0),
                           finiteOr(s.rear, -1.0),
                           finiteOr(s.left, -1.0),
                           finiteOr(s.right, -1.0),
                           in_corridor_ ? "yes" : "no",
-                          corridorOpeningLeft(s) ? "yes" : "no",
-                          corridorOpeningRight(s) ? "yes" : "no",
                           last_goal_valid_ ? "yes" : "no",
-                          goal_fail_count_);
+                          goal_fail_count_,
+                          waypoint_x, waypoint_y,
+                          cmd.linear.x, cmd.angular.z);
     }
 
 private:
@@ -1431,13 +1637,12 @@ private:
     bool exploration_done_;
     bool preferred_left_;
     bool in_corridor_;
-    bool last_goal_valid_;
     bool progress_tracking_;
+    bool last_goal_valid_;
     bool goal_progress_tracking_;
     bool recovery_turn_left_;
 
     State state_;
-
     ros::Time state_end_time_;
     ros::Time reverse_cooldown_until_;
     ros::Time last_visit_update_time_;
@@ -1452,13 +1657,14 @@ private:
     double robot_map_yaw_;
     double last_goal_x_;
     double last_goal_y_;
+    double last_heading_deg_;
     double goal_track_start_dist_;
     double tracked_goal_x_;
     double tracked_goal_y_;
 
     int recovery_count_;
     int reverse_chain_count_;
-    int goal_fail_count_;
+    int goal_fail_count_ = 0;
 
     std::vector<double> visit_counts_;
     std::vector<BlacklistedGoal> goal_blacklist_;
@@ -1490,10 +1696,10 @@ private:
     double reverse_duration_sec_;
     double turn_duration_sec_;
     double escape_turn_duration_sec_;
+    double recovery_forward_duration_sec_;
 
     double stuck_timeout_sec_;
     double stuck_min_progress_;
-
     int max_recovery_attempts_;
     int max_reverse_chain_;
     double reverse_cooldown_sec_;
@@ -1505,26 +1711,23 @@ private:
     double rear_sector_deg_;
 
     double steering_deadband_;
-
     double corridor_width_threshold_;
     double corridor_wall_presence_max_;
     double corridor_center_gain_;
     double corridor_heading_gain_;
     double corridor_front_slow_dist_;
 
-    double branch_opening_dist_;
-    double branch_bonus_weight_;
-    double frontier_reselect_period_sec_;
-
     int frontier_min_cluster_size_;
     double frontier_robot_clearance_m_;
     double frontier_goal_pullback_m_;
+    double frontier_reselect_period_sec_;
     double frontier_size_weight_;
     double frontier_distance_weight_;
     double frontier_heading_weight_;
     double frontier_visit_penalty_weight_;
     double frontier_unknown_density_weight_;
     double frontier_same_goal_bonus_;
+    double frontier_narrow_penalty_weight_;
 
     double goal_reach_dist_m_;
     double goal_progress_timeout_sec_;
@@ -1538,6 +1741,14 @@ private:
 
     double visit_update_radius_m_;
     double visit_penalty_cap_;
+
+    double traj_sim_time_sec_;
+    double traj_dt_sec_;
+    double traj_goal_weight_;
+    double traj_clearance_weight_;
+    double traj_smoothness_weight_;
+    double traj_visit_weight_;
+    double traj_progress_weight_;
 
     double laser_sector_quantile_;
     double laser_neighbor_reject_jump_;
