@@ -21,6 +21,10 @@ find_package(catkin REQUIRED COMPONENTS
         sensor_msgs
         tf2
         tf2_ros
+        tf2_geometry_msgs
+        nav_core
+        costmap_2d
+        pluginlib
 )
 
 ## 2. Declare Include Directories
@@ -41,6 +45,10 @@ catkin_package(
         sensor_msgs
         tf2
         tf2_ros
+        tf2_geometry_msgs
+        nav_core
+        costmap_2d
+        pluginlib
 )
 
 ## 4. Traverse into the src folder
