@@ -1,4 +1,10 @@
+<?xml version="1.0"?>
 <launch>
     <arg name="map_file" default="/home/jetson/maps/mymap.yaml"/>
-    <node pkg="map_server" type="map_server" name="map_server" args="$(arg map_file)" output="screen"/>
+
+    <node pkg="map_server"
+          type="map_server"
+          name="map_server"
+          args="$(arg map_file)"
+          output="screen"/>
 </launch>

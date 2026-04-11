@@ -1,0 +1,75 @@
+<?xml version="1.0"?>
+<launch>
+
+    <arg name="map_file" default="/home/jetson/maps/mymap.yaml"/>
+    <arg name="initial_x" default="0.0"/>
+    <arg name="initial_y" default="0.0"/>
+    <arg name="initial_yaw" default="0.0"/>
+
+    <include file="$(find jetracer)/launch/jetracer.launch"/>
+    <include file="$(find jetracer)/launch/lidar.launch"/>
+
+    <node pkg="map_server"
+          type="map_server"
+          name="map_server"
+          args="$(arg map_file)"
+          output="screen"/>
+
+    <include file="$(find jetracer)/launch/amcl.launch"/>
+
+    <node pkg="move_base"
+          type="move_base"
+          name="move_base"
+          output="screen"
+          clear_params="true">
+
+        <rosparam command="load"
+                  file="/home/jetson/catkin_ws/src/jetracer_ros/config/ackman/costmap_common_params.yaml"
+                  ns="global_costmap"/>
+
+        <rosparam command="load"
+                  file="/home/jetson/catkin_ws/src/jetracer_ros/config/ackman/global_costmap_params.yaml"/>
+
+        <rosparam command="load"
+                  file="/home/jetson/catkin_ws/src/jetracer_ros/config/ackman/costmap_common_params.yaml"
+                  ns="local_costmap"/>
+
+        <rosparam command="load"
+                  file="/home/jetson/catkin_ws/src/jetracer_ros/config/ackman/local_costmap_params.yaml"/>
+
+        <rosparam command="load"
+                  file="/home/jetson/catkin_ws/src/jetracer_ros/config/ackman/teb_local_planner_params.yaml"/>
+
+        <rosparam command="load"
+                  file="/home/jetson/catkin_ws/src/jetracer_ros/config/ackman/move_base_params.yaml"/>
+
+        <param name="base_global_planner" value="global_planner/GlobalPlanner"/>
+        <param name="base_local_planner" value="teb_local_planner/TebLocalPlannerROS"/>
+
+        <param name="planner_frequency" value="1.0"/>
+        <param name="controller_frequency" value="5.0"/>
+        <param name="recovery_behavior_enabled" value="true"/>
+        <param name="clearing_rotation_allowed" value="false"/>
+
+    </node>
+
+    <node pkg="ris"
+          type="initial_pose_sender"
+          name="initial_pose_sender"
+          output="screen">
+
+        <param name="x" value="$(arg initial_x)"/>
+        <param name="y" value="$(arg initial_y)"/>
+        <param name="yaw" value="$(arg initial_yaw)"/>
+        <param name="delay_sec" value="8.0"/>
+        <param name="repeat_count" value="20"/>
+        <param name="frame_id" value="map"/>
+
+    </node>
+
+    <node pkg="ris"
+          type="nav_status_monitor"
+          name="nav_status_monitor"
+          output="screen"/>
+
+</launch>

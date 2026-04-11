@@ -1,4 +1,15 @@
+<?xml version="1.0"?>
 <launch>
-    <rosparam command="load" file="$(find ris)/config/navigation/amcl_params.yaml"/>
-    <node pkg="amcl" type="amcl" name="amcl" output="screen"/>
+    <arg name="scan_topic" default="/scan"/>
+
+    <node pkg="amcl"
+          type="amcl"
+          name="amcl"
+          output="screen"
+          clear_params="true">
+
+        <remap from="scan" to="$(arg scan_topic)"/>
+
+        <rosparam command="load" file="$(find ris)/config/navigation/amcl_params.yaml"/>
+    </node>
 </launch>

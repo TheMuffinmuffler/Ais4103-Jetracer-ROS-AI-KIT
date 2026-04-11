@@ -2,6 +2,7 @@
 #include <ros/ros.h>
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include <cmath>
 
 int main(int argc, char** argv)
 {
@@ -32,6 +33,12 @@ int main(int argc, char** argv)
     msg.pose.pose.position.x = x;
     msg.pose.pose.position.y = y;
     msg.pose.pose.position.z = 0.0;
+
+
+    if (!std::isfinite(yaw)) {
+        ROS_WARN("Yaw is not finite. Forcing yaw=0.0");
+        yaw = 0.0;
+    }
 
     tf2::Quaternion q;
     q.setRPY(0.0, 0.0, yaw);
