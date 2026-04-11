@@ -7,7 +7,7 @@ footprint_padding: 0.02
 inflation_radius: 0.20
 cost_scaling_factor: 5.0
 
-transform_tolerance: 0.5
+transform_tolerance: 2.0
 
 observation_sources: laser_scan_sensor
 laser_scan_sensor:

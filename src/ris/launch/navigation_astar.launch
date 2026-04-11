@@ -18,7 +18,7 @@
 
     <node pkg="move_base" type="move_base" name="move_base" output="screen">
         <rosparam file="$(find ris)/config/navigation/move_base_params.yaml" command="load"/>
-        <rosparam file="$(find ris)/config/navigation/costmap_common_params.yaml" command="load" ns="global_costmap"/>
+        <rosparam file="$(find ris)/config/navigation/global_costmap_common_params.yaml" command="load" ns="global_costmap"/>
         <rosparam file="$(find ris)/config/navigation/costmap_common_params.yaml" command="load" ns="local_costmap"/>
         <rosparam file="$(find ris)/config/navigation/global_costmap_params.yaml" command="load"/>
         <rosparam file="$(find ris)/config/navigation/local_costmap_params.yaml" command="load"/>
@@ -29,17 +29,9 @@
         <param name="x" value="$(arg initial_x)"/>
         <param name="y" value="$(arg initial_y)"/>
         <param name="yaw" value="$(arg initial_yaw)"/>
-        <param name="delay_sec" value="2.0"/>
-        <param name="repeat_count" value="15"/>
+        <param name="delay_sec" value="15"/>
+        <param name="repeat_count" value="30"/>
         <param name="frame_id" value="map"/>
     </node>
 
-    <node pkg="ris" type="simple_goal_sender" name="simple_goal_sender" output="screen">
-        <param name="x" value="$(arg goal_x)"/>
-        <param name="y" value="$(arg goal_y)"/>
-        <param name="yaw" value="$(arg goal_yaw)"/>
-        <param name="delay_sec" value="6.0"/>
-        <param name="repeat_count" value="10"/>
-        <param name="frame_id" value="map"/>
-    </node>
 </launch>

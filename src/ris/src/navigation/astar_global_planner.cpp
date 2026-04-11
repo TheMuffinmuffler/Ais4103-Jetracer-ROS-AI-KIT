@@ -53,7 +53,7 @@ void AStarGlobalPlanner::initialize(std::string name, costmap_2d::Costmap2DROS* 
 
     ros::NodeHandle private_nh("~/" + name);
 
-    private_nh.param("allow_unknown", allow_unknown_, false);
+    private_nh.param("allow_unknown", allow_unknown_, true);
     private_nh.param("use_diagonal", use_diagonal_, true);
     private_nh.param("simplify_plan", simplify_plan_, true);
     private_nh.param("publish_debug_plan", publish_debug_plan_, true);
@@ -62,7 +62,7 @@ void AStarGlobalPlanner::initialize(std::string name, costmap_2d::Costmap2DROS* 
     private_nh.param("lethal_cost_threshold", lethal_cost_int, lethal_cost_int);
     lethal_cost_threshold_ = static_cast<unsigned char>(lethal_cost_int);
 
-    private_nh.param("cost_penalty_scale", cost_penalty_scale_, 2.0);
+    private_nh.param("cost_penalty_scale", cost_penalty_scale_, 0.3);
 
     debug_plan_pub_ = private_nh.advertise<nav_msgs::Path>("debug_plan", 1, true);
 

@@ -15,8 +15,8 @@ int main(int argc, char** argv)
     nh.param("x", x, 0.0);
     nh.param("y", y, 0.0);
     nh.param("yaw", yaw, 0.0);
-    nh.param("delay_sec", delay_sec, 2.0);
-    nh.param("repeat_count", repeat_count, 10);
+    nh.param("delay_sec", delay_sec, 15.0);
+    nh.param("repeat_count", repeat_count, 30);
     nh.param("frame_id", frame_id, std::string("map"));
 
     ros::Publisher pub = nh.advertise<geometry_msgs::PoseWithCovarianceStamped>("/initialpose", 1, true);

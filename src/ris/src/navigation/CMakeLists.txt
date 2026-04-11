@@ -62,6 +62,6 @@ install(TARGETS
 )
 
 install(FILES
-        astar_global_planner_plugin.xml
+        ../../astar_global_planner_plugin.xml
         DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )
