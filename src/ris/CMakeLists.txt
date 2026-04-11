@@ -1,20 +1,18 @@
 cmake_minimum_required(VERSION 3.10)
 project(ris)
 
-## Set C++ Standard
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_VERBOSE_MAKEFILE ON)
 
-## Add compile options
-add_compile_options(-fPIC -Wall -pedantic)
+add_compile_options(-fPIC -Wall -Wextra -pedantic)
 
-## 1. Find ROS Packages
 find_package(catkin REQUIRED COMPONENTS
         roscpp
         roslib
         ris_msgs
         std_msgs
+        std_srvs
         message_runtime
         nav_msgs
         geometry_msgs
@@ -27,18 +25,13 @@ find_package(catkin REQUIRED COMPONENTS
         pluginlib
 )
 
-## 2. Declare Include Directories
-include_directories(
-        ${catkin_INCLUDE_DIRS}
-)
-
-## 3. Catkin Package Configuration
 catkin_package(
         CATKIN_DEPENDS
         roscpp
         roslib
         ris_msgs
         std_msgs
+        std_srvs
         message_runtime
         nav_msgs
         geometry_msgs
@@ -51,5 +44,21 @@ catkin_package(
         pluginlib
 )
 
-## 4. Traverse into the src folder
+include_directories(
+        ${catkin_INCLUDE_DIRS}
+)
+
 add_subdirectory(src)
+
+install(DIRECTORY launch/
+        DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
+)
+
+install(DIRECTORY config/
+        DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/config
+)
+
+install(FILES
+        plugin_description.xml
+        DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+)

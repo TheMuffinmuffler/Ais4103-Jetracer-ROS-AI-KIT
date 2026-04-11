@@ -1,0 +1,10 @@
+base_global_planner: ris_navigation/AStarGlobalPlanner
+
+AStarGlobalPlanner:
+  allow_unknown: false
+  lethal_cost_threshold: 252
+  neutral_cost_threshold: 100
+  use_eight_connected: true
+  simplify_path: true
+  goal_tolerance: 0.20
+  max_goal_search_radius: 0.80

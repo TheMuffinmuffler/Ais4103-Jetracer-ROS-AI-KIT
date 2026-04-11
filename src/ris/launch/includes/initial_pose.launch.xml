@@ -1,0 +1,16 @@
+<launch>
+    <arg name="initial_x" default="0.0"/>
+    <arg name="initial_y" default="0.0"/>
+    <arg name="initial_yaw" default="0.0"/>
+    <arg name="delay_sec" default="8.0"/>
+    <arg name="repeat_count" default="20"/>
+
+    <node pkg="ris" type="initial_pose_sender" name="initial_pose_sender" output="screen">
+        <param name="x" value="$(arg initial_x)"/>
+        <param name="y" value="$(arg initial_y)"/>
+        <param name="yaw" value="$(arg initial_yaw)"/>
+        <param name="delay_sec" value="$(arg delay_sec)"/>
+        <param name="repeat_count" value="$(arg repeat_count)"/>
+        <param name="frame_id" value="map"/>
+    </node>
+</launch>

@@ -13,7 +13,7 @@
         <arg name="initial_x" value="$(arg initial_x)"/>
         <arg name="initial_y" value="$(arg initial_y)"/>
         <arg name="initial_yaw" value="$(arg initial_yaw)"/>
-        <arg name="global_planner_config" value="$(find ris)/config/navigation/global_planner_astar.yaml"/>
+        <arg name="global_planner_config" value="$(find ris)/config/navigation/global_planner_navfn.yaml"/>
     </include>
 
     <node pkg="ris" type="simple_goal_sender" name="simple_goal_sender" output="screen">

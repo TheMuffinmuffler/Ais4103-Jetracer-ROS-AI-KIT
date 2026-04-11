@@ -24,23 +24,26 @@
     <build_depend>sensor_msgs</build_depend>
     <build_depend>tf2</build_depend>
     <build_depend>tf2_ros</build_depend>
-
-
     <build_depend>tf2_geometry_msgs</build_depend>
     <build_depend>nav_core</build_depend>
     <build_depend>costmap_2d</build_depend>
     <build_depend>pluginlib</build_depend>
 
-    <exec_depend>tf2_geometry_msgs</exec_depend>
-    <exec_depend>nav_core</exec_depend>
-    <exec_depend>costmap_2d</exec_depend>
-    <exec_depend>pluginlib</exec_depend>
-
-    <exec_depend>map_server</exec_depend>
-    <exec_depend>amcl</exec_depend>
-    <exec_depend>move_base</exec_depend>
-    <exec_depend>dwa_local_planner</exec_depend>
-
+    <build_export_depend>roscpp</build_export_depend>
+    <build_export_depend>roslib</build_export_depend>
+    <build_export_depend>std_msgs</build_export_depend>
+    <build_export_depend>std_srvs</build_export_depend>
+    <build_export_depend>ris_msgs</build_export_depend>
+    <build_export_depend>message_runtime</build_export_depend>
+    <build_export_depend>nav_msgs</build_export_depend>
+    <build_export_depend>geometry_msgs</build_export_depend>
+    <build_export_depend>sensor_msgs</build_export_depend>
+    <build_export_depend>tf2</build_export_depend>
+    <build_export_depend>tf2_ros</build_export_depend>
+    <build_export_depend>tf2_geometry_msgs</build_export_depend>
+    <build_export_depend>nav_core</build_export_depend>
+    <build_export_depend>costmap_2d</build_export_depend>
+    <build_export_depend>pluginlib</build_export_depend>
 
     <exec_depend>roscpp</exec_depend>
     <exec_depend>roslib</exec_depend>
@@ -53,10 +56,20 @@
     <exec_depend>sensor_msgs</exec_depend>
     <exec_depend>tf2</exec_depend>
     <exec_depend>tf2_ros</exec_depend>
+    <exec_depend>tf2_geometry_msgs</exec_depend>
+    <exec_depend>nav_core</exec_depend>
+    <exec_depend>costmap_2d</exec_depend>
+    <exec_depend>pluginlib</exec_depend>
 
+    <exec_depend>map_server</exec_depend>
+    <exec_depend>amcl</exec_depend>
+    <exec_depend>move_base</exec_depend>
+    <exec_depend>dwa_local_planner</exec_depend>
+    <exec_depend>navfn</exec_depend>
+    <exec_depend>global_planner</exec_depend>
 
     <export>
-        <nav_core plugin="${prefix}/astar_global_planner_plugin.xml" />
+        <nav_core plugin="${prefix}/plugin_description.xml" />
     </export>
 
 </package>
