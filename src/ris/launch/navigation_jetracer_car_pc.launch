@@ -15,7 +15,7 @@
     <!-- amcl -->
     <node pkg="amcl" type="amcl" name="amcl" output="screen" clear_params="true">
         <remap from="scan" to="/scan"/>
-        <rosparam command="load" file="$(find ris)/config/navigation/amcl_params.yaml"/>
+        <rosparam command="load" file="$(find ris)/config/amcl_params.yaml"/>
     </node>
 
     <!-- initial pose -->

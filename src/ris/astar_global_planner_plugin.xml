@@ -1,9 +1,0 @@
-<library path="lib/libastar_global_planner">
-    <class name="ris_navigation/AStarGlobalPlanner"
-           type="ris_navigation::AStarGlobalPlanner"
-           base_class_type="nav_core::BaseGlobalPlanner">
-        <description>
-            A* global planner for occupancy grid / costmap navigation.
-        </description>
-    </class>
-</library>
