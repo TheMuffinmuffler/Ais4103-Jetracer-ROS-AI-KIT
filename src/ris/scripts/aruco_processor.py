@@ -187,7 +187,7 @@ class ArucoProcessor:
             # Calculate T_sb = T_sl * inv(T_cl) * inv(T_bc)
             # (Note: Coordinate system alignment between ArUco and ROS is handled here)
             T_lc = np.linalg.inv(T_cl)
-            T_sb = T_sl @ T_lc @ np.linalg.inv(T_bc) 
+            T_sb = np.dot(T_sl, np.dot(T_lc, np.linalg.inv(T_bc))) 
             
             self.publish_pose(T_sb)
         except Exception as e:
