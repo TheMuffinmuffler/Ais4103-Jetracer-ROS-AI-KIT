@@ -51,8 +51,10 @@ class ArucoProcessor:
         
         # Localization Data
         self.landmarks = self.load_landmarks()
-        self.camera_matrix = None
-        self.dist_coeffs = None
+        # Initialize with default values so we can at least see the image in RViz if info is missing
+        self.camera_matrix = np.array([[500.0, 0.0, 320.0], [0.0, 500.0, 240.0], [0.0, 0.0, 1.0]])
+        self.dist_coeffs = np.zeros((1, 5))
+        self.has_info = False
         
         # Subscribers
         self.info_sub = rospy.Subscriber(self.camera_name+"/camera_info", CameraInfo, self.info_callback)
@@ -87,13 +89,14 @@ class ArucoProcessor:
         return landmarks
 
     def info_callback(self, msg):
+        if not self.has_info:
+            rospy.loginfo("Received Camera Info!")
         self.camera_matrix = np.array(msg.K).reshape(3, 3)
         self.dist_coeffs = np.array(msg.D).reshape(1, 5)
+        self.has_info = True
 
     def image_callback(self, data):
-        if self.camera_matrix is None:
-            return
-
+        # Even without info, we want to publish the debug image for RViz
         self.counter += 1
         if self.counter < self.process_every_n_frames:
             return
@@ -104,11 +107,15 @@ class ArucoProcessor:
             img = self.bridge.imgmsg_to_cv2(data, "bgr8")
             gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
             
+            # If we don't have real info yet, marker detection will be inaccurate, but we still try
+            found_any = False
+            
             # Search across all specified dictionaries
             for adict in self.aruco_dicts:
                 corners, ids, _ = aruco.detectMarkers(gray, adict, parameters=self.aruco_params)
                 
                 if ids is not None:
+                    found_any = True
                     rvecs, tvecs, _ = aruco.estimatePoseSingleMarkers(corners, self.marker_size, self.camera_matrix, self.dist_coeffs)
                     
                     for i in range(len(ids)):
@@ -123,10 +130,11 @@ class ArucoProcessor:
                             self.process_mapping(marker_id, rvecs[i][0], tvecs[i][0])
                     
                     # Optional: Draw on image if there are subscribers
-                    if self.debug_image_pub.get_num_connections() > 0:
+                    if self.debug_image_pub.get_num_connections() > 0 or self.debug_compressed_pub.get_num_connections() > 0:
                         aruco.drawDetectedMarkers(img, corners, ids)
-                        for i in range(len(ids)):
-                             aruco.drawAxis(img, self.camera_matrix, self.dist_coeffs, rvecs[i], tvecs[i], 0.05)
+                        if self.has_info:
+                            for i in range(len(ids)):
+                                 aruco.drawAxis(img, self.camera_matrix, self.dist_coeffs, rvecs[i], tvecs[i], 0.05)
 
             # Publish debug images if anyone is listening
             if self.debug_image_pub.get_num_connections() > 0:
