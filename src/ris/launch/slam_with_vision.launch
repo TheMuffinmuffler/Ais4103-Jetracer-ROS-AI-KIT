@@ -1,13 +1,19 @@
 <?xml version="1.0"?>
 <launch>
-    <!-- 1. Start the SLAM System (includes Gmapping and the Map Manager/Saver) -->
+    <!-- 1. Hardware Nodes (The Car's Sensors and Motors) -->
+    <include file="$(find jetracer)/launch/jetracer.launch" />
+    <include file="$(find jetracer)/launch/csi_camera.launch" />
+    <include file="$(find jetracer)/launch/lidar.launch" />
+
+    <!-- 2. Start the SLAM System (includes Gmapping and the Map Manager/Saver) -->
     <include file="$(find ris)/launch/youssef_slam.launch" />
 
-    <!-- 2. Start the ArUco Vision System (Processor, Saver, and Transforms) -->
+    <!-- 3. Start the ArUco Vision System (Processor, Saver, and Transforms) -->
     <include file="$(find ris)/launch/ris_vision.launch" />
 
-    <!-- 3. (Optional) If you also want to auto-explore, uncomment the next line: -->
-     <node pkg="ris" type="auto_explorer" name="auto_explorer" output="screen"
+    <!-- 4. (Optional) Auto Exploration - Uncomment if you want the robot to drive itself -->
+    <!-- <node pkg="ris" type="auto_explorer" name="auto_explorer" output="screen" /> -->
 
+    <!-- 5. Visualization -->
     <node name="rviz" pkg="rviz" type="rviz" args="-d $(find jetracer)/rviz/slam.rviz" />
 </launch>
