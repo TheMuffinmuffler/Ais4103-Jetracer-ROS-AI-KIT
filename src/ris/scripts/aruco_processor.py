@@ -75,7 +75,8 @@ class ArucoProcessor:
                     data = yaml.safe_load(f)
                     if data and "waypoints" in data:
                         for wp in data["waypoints"]:
-                            T = tft.euler_matrix(0, 0, wp["yaw"])
+                            yaw = wp.get("yaw", 0.0)
+                            T = tft.euler_matrix(0, 0, yaw)
                             T[0, 3] = wp["x"]
                             T[1, 3] = wp["y"]
                             landmarks[wp["id"]] = T
