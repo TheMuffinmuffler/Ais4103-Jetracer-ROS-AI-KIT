@@ -187,7 +187,7 @@ int main(int argc, char** argv) {
   // Read start/goal (these will work with _start_id:= and _goal_id:=)
   int start_id = 0;
   int goal_id = 4;
-  pnh.param("start_id", start_id, 0);
+  pnh.param("start_id", start_id, 0);1
   pnh.param("goal_id", goal_id, 4);
 
   // Load graph from ROS params (must be loaded by: rosparam load ... /graph)

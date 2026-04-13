@@ -1,11 +1,13 @@
 <launch>
-    <node name="ris_cv_video" pkg="ris" type="ris_cv_video.py" output="screen">
+    <!-- Combined ArUco Logic: Handles both Mapping and Localization -->
+    <node name="aruco_processor" pkg="ris" type="aruco_processor.py" output="screen">
         <param name="camera_name" value="csi_cam_0" />
-    </node>
-
-    <node name="aruco_mapper" pkg="ris" type="aruco_mapper.py" output="screen">
-        <param name="camera_name" value="csi_cam_0" />
+        <param name="enable_mapping" value="true" />
+        <param name="enable_localization" value="false" /> <!-- Disable by default unless navigating -->
     </node>
 
     <node name="waypoint_saver" pkg="ris" type="waypoint_saver.py" output="screen" />
+     <!-- args="x y z yaw pitch roll frame_id child_frame_id period_ms" -->
+      <node pkg="tf" type="static_transform_publisher" name="base_footprint_to_camera"
+            args="0.190 0.0 0.111 0.0 0.0 0.0 base_footprint csi_cam_0_link 20" />
 </launch>
