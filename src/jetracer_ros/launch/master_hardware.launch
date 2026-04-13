@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<launch>
+    <!-- Master launch file to start all physical hardware on the JetRacer -->
+    
+    <!-- 1. Start the JetRacer Base (Motors and Odometry) -->
+    <include file="$(find jetracer)/launch/jetracer.launch" />
+
+    <!-- 2. Start the CSI Camera -->
+    <include file="$(find jetracer)/launch/csi_camera.launch" />
+
+    <!-- 3. Start the RPLidar -->
+    <include file="$(find jetracer)/launch/lidar.launch" />
+</launch>

@@ -7,7 +7,7 @@ import cv2 as cv
 import cv2.aruco as aruco
 import yaml
 import os
-from sensor_msgs.msg import CompressedImage, CameraInfo
+from sensor_msgs.msg import Image, CompressedImage, CameraInfo
 from geometry_msgs.msg import PoseWithCovarianceStamped, PoseStamped, PointStamped
 from visualization_msgs.msg import Marker
 from cv_bridge import CvBridge
@@ -56,13 +56,14 @@ class ArucoProcessor:
         
         # Subscribers
         self.info_sub = rospy.Subscriber(self.camera_name+"/camera_info", CameraInfo, self.info_callback)
-        self.image_sub = rospy.Subscriber(self.camera_name+"/image_raw/compressed", CompressedImage, self.image_callback)
+        self.image_sub = rospy.Subscriber(self.camera_name+"/image_raw", Image, self.image_callback)
         
         # Publishers
         self.pose_pub = rospy.Publisher("/initialpose", PoseWithCovarianceStamped, queue_size=10)
         self.waypoint_pub = rospy.Publisher("/aruco_waypoints", PoseStamped, queue_size=10)
         self.rviz_pub = rospy.Publisher("/aruco_markers_rviz", Marker, queue_size=10)
-        self.debug_image_pub = rospy.Publisher("/aruco_debug/compressed", CompressedImage, queue_size=5)
+        self.debug_image_pub = rospy.Publisher("/csi_cam_0/image_raw", Image, queue_size=5)
+        self.debug_compressed_pub = rospy.Publisher("/csi_cam_0/image_raw/compressed", CompressedImage, queue_size=5)
         
         rospy.loginfo("ArUco Processor Started (Map: %s, Localize: %s)",
                       self.enable_mapping, self.enable_localization)
@@ -99,28 +100,39 @@ class ArucoProcessor:
         self.counter = 0
 
         try:
-            img = self.bridge.compressed_imgmsg_to_cv2(data, "bgr8")
+            # Use imgmsg_to_cv2 since we subscribed to raw Image
+            img = self.bridge.imgmsg_to_cv2(data, "bgr8")
             gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
-            corners, ids, _ = aruco.detectMarkers(gray, self.aruco_dict, parameters=self.aruco_params)
             
-            if ids is not None:
-                rvecs, tvecs, _ = aruco.estimatePoseSingleMarkers(corners, self.marker_size, self.camera_matrix, self.dist_coeffs)
+            # Search across all specified dictionaries
+            for adict in self.aruco_dicts:
+                corners, ids, _ = aruco.detectMarkers(gray, adict, parameters=self.aruco_params)
                 
-                for i in range(len(ids)):
-                    marker_id = int(ids[i][0])
+                if ids is not None:
+                    rvecs, tvecs, _ = aruco.estimatePoseSingleMarkers(corners, self.marker_size, self.camera_matrix, self.dist_coeffs)
                     
-                    # 1. LOCALIZATION LOGIC
-                    if self.enable_localization and marker_id in self.landmarks:
-                        self.localize_from_marker(marker_id, rvecs[i][0], tvecs[i][0])
+                    for i in range(len(ids)):
+                        marker_id = int(ids[i][0])
+                        
+                        # 1. LOCALIZATION LOGIC
+                        if self.enable_localization and marker_id in self.landmarks:
+                            self.localize_from_marker(marker_id, rvecs[i][0], tvecs[i][0])
+                        
+                        # 2. MAPPING LOGIC
+                        if self.enable_mapping and marker_id in self.mapping_ids:
+                            self.process_mapping(marker_id, rvecs[i][0], tvecs[i][0])
                     
-                    # 2. MAPPING LOGIC
-                    if self.enable_mapping and marker_id in self.mapping_ids:
-                        self.process_mapping(marker_id, rvecs[i][0], tvecs[i][0])
-                
-                # OPTIONAL: Debug Image
-                if self.debug_image_pub.get_num_connections() > 0:
-                    aruco.drawDetectedMarkers(img, corners, ids)
-                    self.debug_image_pub.publish(self.bridge.cv2_to_compressed_imgmsg(img))
+                    # Optional: Draw on image if there are subscribers
+                    if self.debug_image_pub.get_num_connections() > 0:
+                        aruco.drawDetectedMarkers(img, corners, ids)
+                        for i in range(len(ids)):
+                             aruco.drawAxis(img, self.camera_matrix, self.dist_coeffs, rvecs[i], tvecs[i], 0.05)
+
+            # Publish debug images if anyone is listening
+            if self.debug_image_pub.get_num_connections() > 0:
+                self.debug_image_pub.publish(self.bridge.cv2_to_imgmsg(img, "bgr8"))
+            if self.debug_compressed_pub.get_num_connections() > 0:
+                self.debug_compressed_pub.publish(self.bridge.cv2_to_compressed_imgmsg(img))
                         
         except Exception as e:
             rospy.logerr_throttle(10, "ArUco Error: %s", e)
