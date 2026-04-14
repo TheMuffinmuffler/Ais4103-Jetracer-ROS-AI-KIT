@@ -1,9 +1,11 @@
 <launch>
     <!-- Combined ArUco Logic: Handles both Mapping and Localization -->
+    <!-- NOTE: You MUST launch the camera driver (e.g., csi_camera.launch) separately! -->
     <node name="aruco_processor" pkg="ris" type="aruco_processor.py" output="screen">
-        <param name="camera_name" value="csi_cam_0" />
+        <param name="camera_name" value="/csi_cam_0" />
         <param name="enable_mapping" value="true" />
         <param name="enable_localization" value="false" /> <!-- Disable by default unless navigating -->
+        <param name="process_every_n_frames" value="2" />
     </node>
 
     <node name="waypoint_saver" pkg="ris" type="waypoint_saver.py" output="screen" />

@@ -10,6 +10,7 @@ import os
 from sensor_msgs.msg import Image, CompressedImage, CameraInfo
 from geometry_msgs.msg import PoseWithCovarianceStamped, PoseStamped, PointStamped
 from visualization_msgs.msg import Marker
+from std_srvs.srv import Trigger, TriggerResponse
 from cv_bridge import CvBridge
 import tf.transformations as tft
 
@@ -18,15 +19,16 @@ class ArucoProcessor:
         rospy.init_node("aruco_processor")
         
         # Parameters
-        self.camera_name = rospy.get_param("~camera_name", "csi_cam_0")
+        self.camera_name = rospy.get_param("~camera_name", "/csi_cam_0")
         self.marker_size = rospy.get_param("~marker_size", 0.038)
         self.yaml_path = os.path.expanduser("~/catkin_ws/config/waypoints.yaml")
-        self.camera_frame = self.camera_name + "_link"
-        self.base_frame = "base_footprint"
+        # Ensure frame names don't have leading slash for TF2 compatibility
+        self.camera_frame = self.camera_name.lstrip("/") + "_link"
+        self.base_frame = rospy.get_param("~base_frame", "base_footprint").lstrip("/")
         
         # Mode Parameters
         self.enable_mapping = rospy.get_param("~enable_mapping", True) #place markers and saves them
-        self.enable_localization = rospy.get_param("~enable_localization", True) #locate the car using the aruco codes
+        self.enable_localization = rospy.get_param("~enable_localization", False) #locate the car using the aruco codes
         self.process_every_n_frames = rospy.get_param("~process_every_n_frames", 2)
         
         # Tools
@@ -47,13 +49,13 @@ class ArucoProcessor:
         # Mapping Data
         self.mapping_ids = [1, 2, 3, 4]
         self.buffers = {mid: [] for mid in self.mapping_ids}
-        self.buffer_size = 15
+        self.buffer_size = 10
         
         # Localization Data
         self.landmarks = self.load_landmarks()
-        # Initialize with default values so we can at least see the image in RViz if info is missing
-        self.camera_matrix = np.array([[500.0, 0.0, 320.0], [0.0, 500.0, 240.0], [0.0, 0.0, 1.0]])
-        self.dist_coeffs = np.zeros((1, 5))
+        # Initialize to None; wait for info_callback to populate from ROS CameraInfo topic
+        self.camera_matrix = None
+        self.dist_coeffs = None
         self.has_info = False
         
         # Subscribers
@@ -67,8 +69,39 @@ class ArucoProcessor:
         self.debug_image_pub = rospy.Publisher("/csi_cam_0/image_raw", Image, queue_size=5)
         self.debug_compressed_pub = rospy.Publisher("/csi_cam_0/image_raw/compressed", CompressedImage, queue_size=5)
         
+        # Services
+        self.toggle_srv = rospy.Service("~toggle_mode", Trigger, self.handle_toggle_mode)
+        self.toggle_mapping_srv = rospy.Service("~toggle_mapping", Trigger, self.handle_toggle_mapping)
+        self.toggle_localization_srv = rospy.Service("~toggle_localization", Trigger, self.handle_toggle_localization)
+        
         rospy.loginfo("ArUco Processor Started (Map: %s, Localize: %s)",
                       self.enable_mapping, self.enable_localization)
+
+    def handle_toggle_mode(self, req):
+        # Toggle between mapping and localization
+        if self.enable_mapping:
+            self.enable_mapping = False
+            self.enable_localization = True
+            msg = "Switched to Localization Mode (Mapping: OFF, Localization: ON)"
+        else:
+            self.enable_mapping = True
+            self.enable_localization = False
+            msg = "Switched to Mapping Mode (Mapping: ON, Localization: OFF)"
+        
+        rospy.loginfo(msg)
+        return TriggerResponse(success=True, message=msg)
+
+    def handle_toggle_mapping(self, req):
+        self.enable_mapping = not self.enable_mapping
+        msg = "Mapping is now " + ("ON" if self.enable_mapping else "OFF")
+        rospy.loginfo(msg)
+        return TriggerResponse(success=True, message=msg)
+
+    def handle_toggle_localization(self, req):
+        self.enable_localization = not self.enable_localization
+        msg = "Localization is now " + ("ON" if self.enable_localization else "OFF")
+        rospy.loginfo(msg)
+        return TriggerResponse(success=True, message=msg)
 
     def load_landmarks(self):
         landmarks = {}
@@ -107,7 +140,13 @@ class ArucoProcessor:
             img = self.bridge.imgmsg_to_cv2(data, "bgr8")
             gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
             
-            # If we don't have real info yet, marker detection will be inaccurate, but we still try
+            # Only detect and estimate pose if we have valid camera info
+            if not self.has_info:
+                # Optionally publish raw image for debugging anyway
+                if self.debug_image_pub.get_num_connections() > 0:
+                    self.debug_image_pub.publish(self.bridge.cv2_to_imgmsg(img, "bgr8"))
+                return
+
             found_any = False
             
             # Search across all specified dictionaries
@@ -118,6 +157,12 @@ class ArucoProcessor:
                     found_any = True
                     rvecs, tvecs, _ = aruco.estimatePoseSingleMarkers(corners, self.marker_size, self.camera_matrix, self.dist_coeffs)
                     
+                    # Draw ALL detected markers on the image for the presentation
+                    aruco.drawDetectedMarkers(img, corners, ids)
+                    for i in range(len(ids)):
+                         marker_id = int(ids[i][0])
+                         aruco.drawAxis(img, self.camera_matrix, self.dist_coeffs, rvecs[i], tvecs[i], 0.05)
+
                     for i in range(len(ids)):
                         marker_id = int(ids[i][0])
                         
@@ -128,15 +173,8 @@ class ArucoProcessor:
                         # 2. MAPPING LOGIC
                         if self.enable_mapping and marker_id in self.mapping_ids:
                             self.process_mapping(marker_id, rvecs[i][0], tvecs[i][0])
-                    
-                    # Optional: Draw on image if there are subscribers
-                    if self.debug_image_pub.get_num_connections() > 0 or self.debug_compressed_pub.get_num_connections() > 0:
-                        aruco.drawDetectedMarkers(img, corners, ids)
-                        if self.has_info:
-                            for i in range(len(ids)):
-                                 aruco.drawAxis(img, self.camera_matrix, self.dist_coeffs, rvecs[i], tvecs[i], 0.05)
 
-            # Publish debug images if anyone is listening
+            # Publish debug images
             if self.debug_image_pub.get_num_connections() > 0:
                 self.debug_image_pub.publish(self.bridge.cv2_to_imgmsg(img, "bgr8"))
             if self.debug_compressed_pub.get_num_connections() > 0:
@@ -166,16 +204,21 @@ class ArucoProcessor:
             local_pose.pose.orientation.z = quat[2]
             local_pose.pose.orientation.w = quat[3]
 
-            global_pose = self.tf_buffer.transform(local_pose, "map", rospy.Duration(0.1))
+            global_pose = self.tf_buffer.transform(local_pose, "map", rospy.Duration(0.3))
             self.buffers[marker_id].append(global_pose.pose)
 
             if len(self.buffers[marker_id]) >= self.buffer_size:
-                avg_x = sum(p.position.x for p in self.buffers[marker_id]) / self.buffer_size
-                avg_y = sum(p.position.y for p in self.buffers[marker_id]) / self.buffer_size
+                # Weighted Average Logic: Give more weight to recent frames
+                weights = range(1, self.buffer_size + 1)
+                total_weight = sum(weights)
+                
+                avg_x = sum(p.position.x * w for p, w in zip(self.buffers[marker_id], weights)) / total_weight
+                avg_y = sum(p.position.y * w for p, w in zip(self.buffers[marker_id], weights)) / total_weight
+                
                 final_quat = self.buffers[marker_id][-1].orientation
                 
                 final_pose = PoseStamped()
-                final_pose.header.frame_id = str(marker_id)
+                final_pose.header.frame_id = str(marker_id).lstrip("/")
                 final_pose.pose.position.x = avg_x
                 final_pose.pose.position.y = avg_y
                 final_pose.pose.orientation = final_quat
@@ -190,7 +233,6 @@ class ArucoProcessor:
 
     def localize_from_marker(self, marker_id, rvec, tvec):
         try:
-            # Marker in Camera Frame
             R_cl, _ = cv.Rodrigues(rvec)
             T_cl = np.eye(4)
             T_cl[:3, :3] = R_cl
@@ -198,19 +240,12 @@ class ArucoProcessor:
             T_cl[1, 3] = tvec[1]
             T_cl[2, 3] = tvec[2]
 
-            # Get Camera in Body Frame
-            trans = self.tf_buffer.lookup_transform(self.base_frame, self.camera_frame, rospy.Time(0))
+            trans = self.tf_buffer.lookup_transform(self.base_frame, self.camera_frame, rospy.Time(0), rospy.Duration(0.3))
             T_bc = self.pose_to_matrix(trans.transform)
-            
-            # Landmark in Map Frame
             T_sl = self.landmarks[marker_id]
-
-            # Calculate T_sb = T_sl * inv(T_cl) * inv(T_bc)
-            # (Note: Coordinate system alignment between ArUco and ROS is handled here)
             T_lc = np.linalg.inv(T_cl)
             T_sb = np.dot(T_sl, np.dot(T_lc, np.linalg.inv(T_bc))) 
-            
-            self.publish_pose(T_sb)
+            self.publish_pose(T_sb, marker_id)
         except Exception as e:
             rospy.logwarn_throttle(5, "Localization TF Error: %s", e)
 
@@ -222,7 +257,7 @@ class ArucoProcessor:
         T[2, 3] = transform.translation.z
         return T
 
-    def publish_pose(self, T):
+    def publish_pose(self, T, marker_id):
         msg = PoseWithCovarianceStamped()
         msg.header.stamp = rospy.Time.now()
         msg.header.frame_id = "map"
@@ -257,7 +292,7 @@ class ArucoProcessor:
         marker.color.b = 0.0
         marker.color.a = 1.0
         self.rviz_pub.publish(marker)
-
+1
 if __name__ == "__main__":
     ArucoProcessor()
     rospy.spin()
