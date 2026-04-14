@@ -1,0 +1,136 @@
+<?xml version="1.0"?>
+<launch>
+    <!-- 1. TF Fixes (Bypassing potential slash issues and timing gaps) -->
+    
+    <!-- IMU Transform Booster (50Hz) - Fixes the "Imu will not be activated" warning -->
+    <node pkg="tf" type="static_transform_publisher" name="ris_imu_fix" 
+          args="0 0 0.02 0 0 0 base_footprint base_imu_link 50" />
+    
+    <!-- Laser Transform Fix (No slashes for compatibility) -->
+    <node pkg="tf" type="static_transform_publisher" name="ris_laser_fix" 
+          args="0 0.0 0.1 3.14 0.0 0.0 base_footprint laser_frame 50" />
+
+    <!-- 2. Start the SLAM System -->
+    
+    <!-- Gmapping: Using odom_frame 'odom' to match EKF output -->
+    <node pkg="gmapping" type="slam_gmapping" name="slam_gmapping" output="screen">
+        <remap from="scan" to="scan"/>
+        <param name="base_frame" value="base_footprint"/>
+        <param name="odom_frame" value="odom"/> 
+        <param name="map_update_interval" value="5.0"/> 
+        <param name="maxUrange" value="8.0"/>
+        <param name="minimumScore" value="50"/>
+        <param name="particles" value="30"/>
+        <param name="delta" value="0.05"/>
+    </node>
+
+    <!-- Map Manager/Saver -->
+    <node pkg="ris" type="youssef_slam" name="youssef_slam" output="screen">
+        <param name="map_topic" value="/map"/>
+        <param name="stable_seconds_before_save" value="12.0"/>
+        <param name="min_exploration_time_sec" value="90.0"/>
+        <param name="gmapping_node_name" value="/slam_gmapping"/>
+        <param name="stop_robot_before_save" value="true"/>
+    </node>
+
+    <!-- 3. Start the ArUco Vision System -->
+    <include file="$(find ris)/launch/ris_vision.launch" />
+
+    <!-- 4. Auto Exploration - Integrated from auto_mapping.launch -->
+    <node pkg="ris" type="auto_explorer" name="auto_explorer" output="screen">
+        <param name="scan_topic" value="/scan"/>
+        <param name="odom_topic" value="/odom"/>
+        <param name="map_topic" value="/map"/>
+        <param name="cmd_topic" value="/cmd_vel"/>
+        <param name="exploration_done_topic" value="/exploration_done"/>
+
+        <param name="map_frame" value="map"/>
+        <param name="base_frame" value="base_footprint"/>
+
+        <param name="control_rate_hz" value="10.0"/>
+
+        <param name="front_clear_dist" value="1.40"/>
+        <param name="front_caution_dist" value="1.00"/>
+        <param name="front_block_dist" value="0.55"/>
+        <param name="front_emergency_dist" value="0.32"/>
+
+        <param name="rear_clear_dist" value="0.65"/>
+        <param name="rear_block_dist" value="0.30"/>
+        <param name="rear_emergency_dist" value="0.20"/>
+
+        <param name="side_block_dist" value="0.25"/>
+        <param name="side_emergency_dist" value="0.16"/>
+
+        <param name="forward_speed_max" value="0.34"/>
+        <param name="forward_speed_min" value="0.20"/>
+        <param name="forward_speed_recovery" value="0.24"/>
+        <param name="corridor_speed_max" value="0.24"/>
+        <param name="reverse_speed" value="-0.20"/>
+
+        <param name="turn_speed_soft" value="0.65"/>
+        <param name="turn_speed_hard" value="1.20"/>
+        <param name="reverse_turn_speed" value="0.95"/>
+
+        <param name="reverse_duration_sec" value="0.65"/>
+        <param name="turn_duration_sec" value="0.85"/>
+        <param name="escape_turn_duration_sec" value="1.60"/>
+        <param name="recovery_forward_duration_sec" value="0.55"/>
+
+        <param name="stuck_timeout_sec" value="1.20"/>
+        <param name="stuck_min_progress" value="0.05"/>
+
+        <param name="max_recovery_attempts" value="4"/>
+        <param name="max_reverse_chain" value="1"/>
+        <param name="reverse_cooldown_sec" value="2.5"/>
+
+        <param name="front_sector_deg" value="35.0"/>
+        <param name="front_wide_sector_deg" value="60.0"/>
+        <param name="side_sector_min_deg" value="20.0"/>
+        <param name="side_sector_max_deg" value="95.0"/>
+        <param name="rear_sector_deg" value="35.0"/>
+
+        <param name="steering_deadband" value="0.04"/>
+
+        <param name="corridor_width_threshold" value="1.30"/>
+        <param name="corridor_wall_presence_max" value="0.95"/>
+        <param name="corridor_center_gain" value="1.15"/>
+        <param name="corridor_heading_gain" value="0.55"/>
+        <param name="corridor_front_slow_dist" value="0.80"/>
+
+        <param name="frontier_min_cluster_size" value="8"/>
+        <param name="frontier_robot_clearance_m" value="0.24"/>
+        <param name="frontier_goal_pullback_m" value="0.35"/>
+        <param name="frontier_reselect_period_sec" value="0.8"/>
+        <param name="frontier_size_weight" value="1.3"/>
+        <param name="frontier_distance_weight" value="0.90"/>
+        <param name="frontier_heading_weight" value="0.70"/>
+        <param name="frontier_visit_penalty_weight" value="1.3"/>
+        <param name="frontier_unknown_density_weight" value="1.2"/>
+        <param name="frontier_same_goal_bonus" value="0.35"/>
+        <param name="frontier_narrow_penalty_weight" value="1.2"/>
+
+        <param name="goal_reach_dist_m" value="0.35"/>
+        <param name="goal_progress_timeout_sec" value="3.0"/>
+        <param name="goal_progress_min_dist_m" value="0.12"/>
+        <param name="goal_fail_limit" value="2"/>
+        <param name="goal_blacklist_radius_m" value="0.70"/>
+        <param name="goal_blacklist_duration_sec" value="45.0"/>
+
+        <param name="waypoint_step_m" value="0.40"/>
+        <param name="waypoint_max_lookahead_m" value="1.20"/>
+
+        <param name="visit_update_radius_m" value="0.25"/>
+        <param name="visit_penalty_cap" value="10.0"/>
+
+        <param name="traj_sim_time_sec" value="0.90"/>
+        <param name="traj_dt_sec" value="0.10"/>
+        <param name="traj_goal_weight" value="2.5"/>
+        <param name="traj_clearance_weight" value="1.8"/>
+        <param name="traj_smoothness_weight" value="0.55"/>
+        <param name="traj_visit_weight" value="0.90"/>
+        <param name="traj_progress_weight" value="1.20"/>
+
+        <param name="laser_sector_quantile" value="0.25"/>
+        <param name="laser_neighbor_reject_jump" value="0.50"/>
+    </node>
+</launch>
