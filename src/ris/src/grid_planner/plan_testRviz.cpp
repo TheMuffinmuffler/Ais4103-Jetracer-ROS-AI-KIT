@@ -185,6 +185,85 @@ private:
     return true;
   }
 
+// ---------------------------- isCellFreeInflated ----------------------------
+// a cell is considered blocked if it is too close to an obstacle
+bool isCellFreeInflated(int gx, int gy)
+{
+  if (!got_map)
+    return false;
+
+  if (gx < 0 || gy < 0 || gx >= width || gy >= height)
+    return false;
+
+  // inflation radius in cells
+  int inflation_radius = 7;
+
+  for (int dx = -inflation_radius; dx <= inflation_radius; dx++)
+  {
+    for (int dy = -inflation_radius; dy <= inflation_radius; dy++)
+    {
+      int nx = gx + dx;
+      int ny = gy + dy;
+
+      if (nx < 0 || ny < 0 || nx >= width || ny >= height)
+        continue;
+
+      // use original occupancy check
+      if (!isCellFree(nx, ny))
+        return false;
+    }
+  }
+
+  return true;
+}
+
+
+// ---------------------------- wallPenalty ----------------------------
+// higher cost if a free cell is close to occupied cells
+  int wallPenalty(int gx, int gy)
+  {
+    if (!got_map)
+      return 0;
+
+    int penalty = 0;
+
+    // check cells in a square of radius 2 around (gx, gy)
+    for (int dx = -2; dx <= 2; dx++)
+    {
+      for (int dy = -2; dy <= 2; dy++)
+      {
+        int nx = gx + dx;
+        int ny = gy + dy;
+
+        // skip the center cell itself
+        if (dx == 0 && dy == 0)
+          continue;
+
+        // out of bounds -> ignore
+        if (nx < 0 || ny < 0 || nx >= width || ny >= height)
+          continue;
+
+        // if nearby cell is occupied, add penalty
+        if (!isCellFree(nx, ny))
+        {
+          int dist2 = dx*dx + dy*dy;
+
+          // stronger penalty for closer obstacles
+          if (dist2 == 1)         // direct neighbor
+            penalty += 40;
+          else if (dist2 == 2)    // diagonal neighbor
+            penalty += 25;
+          else                    // a bit farther away
+            penalty += 10;
+        }
+      }
+    }
+
+    return penalty;
+  }
+
+
+
 // ---------------------------- heuristic ----------------------------
   // Manhattan heuristic
   int heuristic(int x1, int y1, int x2, int y2)
@@ -236,7 +315,8 @@ private:
       return empty_path;
 
     // check initial and final cells
-    if (!isCellFree(start_x, start_y) || !isCellFree(goal_x, goal_y) )
+    //if (!isCellFree(start_x, start_y) || !isCellFree(goal_x, goal_y) )
+    if (!isCellFreeInflated(start_x, start_y) || !isCellFreeInflated(goal_x, goal_y))
     {
       ROS_WARN("¡¡¡¡ you gave occupied initial or final cell !!!!");
       return empty_path;
@@ -319,7 +399,8 @@ private:
   	}
 
         // check if neighbor cell is free 
-        if (!isCellFree(neighbor_x, neighbor_y))
+        //if (!isCellFree(neighbor_x, neighbor_y))
+        if (!isCellFreeInflated(neighbor_x, neighbor_y))
           continue;
 
         int neighbor = toIndex(neighbor_x, neighbor_y);
@@ -335,9 +416,9 @@ private:
 	else
   	  move_cost = 10;   // straight move 
 
-	int tentative_g = g_score[current] + move_cost;
+	int tentative_g = g_score[current] + move_cost + wallPenalty(neighbor_x, neighbor_y);
 	
-	// if moving to neighbor is cheaper than the current g_score
+	// if moving to neighbor is cheaper than the current g_score 
         if (tentative_g < g_score[neighbor])
         {
           g_score[neighbor] = tentative_g; // update neighbor g_score 
