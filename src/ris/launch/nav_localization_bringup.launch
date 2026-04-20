@@ -1,0 +1,82 @@
+<?xml version="1.0"?>
+<launch>
+    <!-- ========================= -->
+    <!-- Files / paths             -->
+    <!-- ========================= -->
+    <arg name="map_dir" default="/home/jetson/catkin_ws/src/Ais4103-Jetracer-ROS-AI-KIT/src/ris/map" />
+    <arg name="map_file" default="$(arg map_dir)/mymap.yaml" />
+    <arg name="aruco_yaml" default="$(arg map_dir)/aruco_waypoints.yaml" />
+
+    <param name="use_sim_time" value="false"/>
+
+        <!-- ========================= -->
+    <!-- Base robot + sensors      -->
+    <!-- ========================= -->
+    <!-- <include file="$(find jetracer)/launch/jetracer.launch" /> -->
+    <!-- <include file="$(find jetracer)/launch/lidar.launch" /> -->
+    <!-- <include file="$(find jetracer)/launch/csi_camera.launch" /> -->
+
+    <!-- ========================= -->
+    <!-- Static TF fixes           -->
+    <!-- ========================= -->
+    <node pkg="tf" type="static_transform_publisher" name="ris_imu_fix"
+          args="0 0 0.02 0 0 0 base_footprint base_imu_link 50" />
+
+    <node pkg="tf" type="static_transform_publisher" name="ris_laser_fix"
+          args="0 0.0 0.1 3.14 0.0 0.0 base_footprint laser_frame 50" />
+
+    <node pkg="tf" type="static_transform_publisher" name="base_footprint_to_camera"
+          args="0.190 0.0 0.111 0.0 0.0 0.0 base_footprint csi_cam_0_link 20" />
+
+    <!-- ========================= -->
+    <!-- Static map                -->
+    <!-- ========================= -->
+    <node name="map_server"
+          pkg="map_server"
+          type="map_server"
+          args="$(arg map_file)"
+          output="screen" />
+
+    <!-- ========================= -->
+    <!-- AMCL                      -->
+    <!-- ========================= -->
+    <include file="$(find jetracer)/launch/amcl.launch" />
+
+    <!-- ========================= -->
+    <!-- move_base                 -->
+    <!-- ========================= -->
+    <include file="$(find jetracer)/launch/move_base.launch" />
+
+    <!-- ========================= -->
+    <!-- ArUco localization only   -->
+    <!-- ========================= -->
+    <node pkg="ris"
+          type="aruco_processor.py"
+          name="aruco_processor"
+          output="screen">
+        <param name="camera_name" value="/csi_cam_0"/>
+        <param name="marker_size" value="0.038"/>
+        <param name="yaml_path" value="$(arg aruco_yaml)"/>
+        <param name="base_frame" value="base_footprint"/>
+
+        <param name="enable_mapping" value="false"/>
+        <param name="enable_localization" value="true"/>
+        <param name="process_every_n_frames" value="2"/>
+    </node>
+
+    <!-- ========================= -->
+    <!-- Goal sender by marker ID  -->
+    <!-- ========================= -->
+    <node pkg="ris"
+          type="aruco_goal_navigator.py"
+          name="aruco_goal_navigator"
+          output="screen">
+        <param name="yaml_path" value="$(arg aruco_yaml)"/>
+        <param name="map_frame" value="map"/>
+        <param name="move_base_action" value="/move_base"/>
+        <param name="goal_topic" value="/target_marker_id"/>
+        <param name="wait_for_server_sec" value="20.0"/>
+        <param name="goal_timeout_sec" value="120.0"/>
+        <param name="use_closest_yaw_if_missing" value="true"/>
+    </node>
+</launch>
