@@ -1,0 +1,22 @@
+base_global_planner: "ris/AStarGlobalPlanner"
+base_local_planner: "teb_local_planner/TebLocalPlannerROS"
+
+planner_frequency: 1.0
+planner_patience: 5.0
+
+controller_frequency: 4.0
+controller_patience: 10.0
+
+recovery_behavior_enabled: true
+clearing_rotation_allowed: false
+
+shutdown_costmaps: false
+conservative_reset_dist: 1.5
+
+ris:
+  allow_unknown: false
+  simplify_path: true
+  obstacle_cost_threshold: 253
+  default_tolerance: 0.20
+  neutral_cost_scale: 0.02
+  goal_search_radius_cells: 8

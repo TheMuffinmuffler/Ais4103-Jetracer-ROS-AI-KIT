@@ -27,19 +27,24 @@ class ArucoProcessor:
             os.path.expanduser("~/catkin_ws/src/ris/map/aruco_waypoints.yaml")
         )
 
-        # Ensure frame names don't have leading slash for TF2 compatibility
         self.camera_frame = self.camera_name.lstrip("/") + "_link"
         self.base_frame = rospy.get_param("~base_frame", "base_footprint").lstrip("/")
 
         # Mode Parameters
-        self.enable_mapping = rospy.get_param("~enable_mapping", True)
-        self.enable_localization = rospy.get_param("~enable_localization", False)
+        self.enable_mapping = rospy.get_param("~enable_mapping", False)
+        self.enable_localization = rospy.get_param("~enable_localization", True)
         self.process_every_n_frames = rospy.get_param("~process_every_n_frames", 2)
 
-        # Localization anti-spam fix
+        # Bootstrap localization parameters
+        self.bootstrap_marker_id = rospy.get_param("~bootstrap_marker_id", 1)
+        self.bootstrap_only_once = rospy.get_param("~bootstrap_only_once", True)
+        self.localization_cooldown_sec = rospy.get_param("~localization_cooldown_sec", 20.0)
+        self.required_consecutive_detections = rospy.get_param("~required_consecutive_detections", 5)
+        self.min_marker_distance_m = rospy.get_param("~min_marker_distance_m", 0.10)
+        self.max_marker_distance_m = rospy.get_param("~max_marker_distance_m", 1.50)
         self.localization_done = False
         self.last_localization_time = rospy.Time(0)
-        self.localization_cooldown_sec = rospy.get_param("~localization_cooldown_sec", 5.0)
+        self.localization_detection_count = 0
 
         # Tools
         self.bridge = CvBridge()
@@ -64,7 +69,7 @@ class ArucoProcessor:
         # Localization Data
         self.landmarks = self.load_landmarks()
 
-        # Initialize from CameraInfo later
+        # Camera model
         self.camera_matrix = None
         self.dist_coeffs = None
         self.has_info = False
@@ -93,8 +98,8 @@ class ArucoProcessor:
         self.toggle_mapping_srv = rospy.Service("~toggle_mapping", Trigger, self.handle_toggle_mapping)
         self.toggle_localization_srv = rospy.Service("~toggle_localization", Trigger, self.handle_toggle_localization)
 
-        rospy.loginfo("ArUco Processor Started (Map: %s, Localize: %s)",
-                      self.enable_mapping, self.enable_localization)
+        rospy.loginfo("ArUco Processor Started (Map: %s, Localize: %s, Bootstrap marker: %d)",
+                      self.enable_mapping, self.enable_localization, self.bootstrap_marker_id)
 
     def handle_toggle_mode(self, req):
         if self.enable_mapping:
@@ -102,6 +107,7 @@ class ArucoProcessor:
             self.enable_localization = True
             self.localization_done = False
             self.last_localization_time = rospy.Time(0)
+            self.localization_detection_count = 0
             msg = "Switched to Localization Mode (Mapping: OFF, Localization: ON)"
         else:
             self.enable_mapping = True
@@ -123,6 +129,7 @@ class ArucoProcessor:
         if self.enable_localization:
             self.localization_done = False
             self.last_localization_time = rospy.Time(0)
+            self.localization_detection_count = 0
 
         msg = "Localization is now " + ("ON" if self.enable_localization else "OFF")
         rospy.loginfo(msg)
@@ -158,7 +165,6 @@ class ArucoProcessor:
         if len(msg.D) >= 5:
             self.dist_coeffs = np.array(msg.D[:5]).reshape(1, 5)
         else:
-            # fallback if calibration is weird/missing
             self.dist_coeffs = np.zeros((1, 5), dtype=np.float64)
 
         self.has_info = True
@@ -178,7 +184,7 @@ class ArucoProcessor:
                     self.debug_image_pub.publish(self.bridge.cv2_to_imgmsg(img, "bgr8"))
                 return
 
-            found_any = False
+            saw_bootstrap_marker = False
 
             for adict in self.aruco_dicts:
                 corners, ids, _ = aruco.detectMarkers(gray, adict, parameters=self.aruco_params)
@@ -186,7 +192,6 @@ class ArucoProcessor:
                 if ids is None:
                     continue
 
-                found_any = True
                 rvecs, tvecs, _ = aruco.estimatePoseSingleMarkers(
                     corners, self.marker_size, self.camera_matrix, self.dist_coeffs
                 )
@@ -206,11 +211,17 @@ class ArucoProcessor:
                 for i in range(len(ids)):
                     marker_id = int(ids[i][0])
 
-                    if self.enable_localization and marker_id in self.landmarks:
-                        self.localize_from_marker(marker_id, rvecs[i][0], tvecs[i][0])
+                    if self.enable_localization and marker_id == self.bootstrap_marker_id and marker_id in self.landmarks:
+                        distance = float(np.linalg.norm(tvecs[i][0]))
+                        if self.min_marker_distance_m <= distance <= self.max_marker_distance_m:
+                            saw_bootstrap_marker = True
+                            self.localize_from_marker(marker_id, rvecs[i][0], tvecs[i][0])
 
                     if self.enable_mapping and marker_id in self.mapping_ids:
                         self.process_mapping(marker_id, rvecs[i][0], tvecs[i][0])
+
+            if self.enable_localization and not saw_bootstrap_marker:
+                self.localization_detection_count = 0
 
             if self.debug_image_pub.get_num_connections() > 0:
                 self.debug_image_pub.publish(self.bridge.cv2_to_imgmsg(img, "bgr8"))
@@ -223,7 +234,6 @@ class ArucoProcessor:
 
     def process_mapping(self, marker_id, rvec, tvec):
         try:
-            # ArUco coords -> ROS coords
             x_dist, y_dist, z_dist = tvec[0], tvec[1], tvec[2]
 
             local_pose = PoseStamped()
@@ -257,7 +267,7 @@ class ArucoProcessor:
 
                 final_pose = PoseStamped()
                 final_pose.header.stamp = rospy.Time.now()
-                final_pose.header.frame_id = "map"
+                final_pose.header.frame_id = str(marker_id)
                 final_pose.pose.position.x = avg_x
                 final_pose.pose.position.y = avg_y
                 final_pose.pose.position.z = 0.0
@@ -274,13 +284,16 @@ class ArucoProcessor:
 
     def localize_from_marker(self, marker_id, rvec, tvec):
         try:
-            # stop repeated resets
             now = rospy.Time.now()
 
-            if self.localization_done:
+            if self.bootstrap_only_once and self.localization_done:
                 return
 
             if (now - self.last_localization_time).to_sec() < self.localization_cooldown_sec:
+                return
+
+            self.localization_detection_count += 1
+            if self.localization_detection_count < self.required_consecutive_detections:
                 return
 
             R_cl, _ = cv.Rodrigues(rvec)
@@ -306,6 +319,7 @@ class ArucoProcessor:
 
             self.last_localization_time = now
             self.localization_done = True
+            self.localization_detection_count = 0
 
         except Exception as e:
             rospy.logwarn_throttle(5, "Localization TF Error: %s", e)
@@ -345,7 +359,7 @@ class ArucoProcessor:
         msg.pose.covariance = cov
 
         self.pose_pub.publish(msg)
-        rospy.loginfo("Pose reset by Marker %s", marker_id)
+        rospy.loginfo("Bootstrap pose reset by Marker %s", marker_id)
 
     def publish_rviz_marker(self, marker_id, x, y, quat):
         marker = Marker()

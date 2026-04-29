@@ -31,6 +31,8 @@ find_package(catkin REQUIRED COMPONENTS
 )
 
 catkin_package(
+        INCLUDE_DIRS include
+        LIBRARIES ris_astar_global_planner
         CATKIN_DEPENDS
         roscpp
         rospy
@@ -55,27 +57,27 @@ catkin_package(
 )
 
 include_directories(
+        include
         ${catkin_INCLUDE_DIRS}
 )
 
 add_subdirectory(src)
 
-install(DIRECTORY launch/
-        DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
+install(DIRECTORY launch
+        DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )
 
-install(DIRECTORY config/
-        DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/config
+install(DIRECTORY config
+        DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )
 
-install(FILES
-        plugin_description.xml
+install(FILES plugin_description.xml
         DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )
 
 catkin_install_python(PROGRAMS
         scripts/aruco_processor.py
         scripts/waypoint_saver.py
-        scripts/aruco_goal_navigator.py
+        scripts/marker_goal_navigator.py
         DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
