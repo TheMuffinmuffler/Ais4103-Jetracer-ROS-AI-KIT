@@ -1,6 +1,50 @@
 <?xml version="1.0"?>
 <launch>
-    <include file="$(find ris)/launch/youssef_slam.launch" />
+    <arg name="output_dir" default="/home/jetson/catkin_ws/src/Ais4103-Jetracer-ROS-AI-KIT/src/ris/map" />
+    <arg name="map_name" default="mymap" />
+    <arg name="aruco_yaml" default="$(arg output_dir)/aruco_waypoints.yaml" />
+
+    <node pkg="tf" type="static_transform_publisher" name="ris_imu_fix"
+          args="0 0 0.02 0 0 0 base_footprint base_imu_link 50" />
+    <node pkg="tf" type="static_transform_publisher" name="ris_laser_fix"
+          args="0 0.0 0.1 3.14 0.0 0.0 base_footprint laser_frame 50" />
+    <node pkg="tf" type="static_transform_publisher" name="base_footprint_to_camera"
+          args="0.190 0.0 0.111 0.0 0.0 0.0 base_footprint csi_cam_0_link 20" />
+    <node pkg="gmapping" type="slam_gmapping" name="slam_gmapping" output="screen">
+        <remap from="scan" to="scan"/>
+        <param name="base_frame" value="base_footprint"/>
+        <param name="odom_frame" value="odom"/>
+        <param name="map_update_interval" value="5.0"/>
+        <param name="maxUrange" value="8.0"/>
+        <param name="minimumScore" value="50"/>
+        <param name="particles" value="30"/>
+        <param name="delta" value="0.05"/>
+    </node>
+    <node pkg="ris" type="youssef_slam" name="youssef_slam" output="screen">
+        <param name="map_topic" value="/map"/>
+        <param name="laptop_map_dir" value="$(arg output_dir)"/>
+        <param name="laptop_map_name" value="$(arg map_name)"/>
+        <param name="robot_map_dir" value="$(arg output_dir)"/>
+        <param name="stable_seconds_before_save" value="12.0"/>
+        <param name="min_exploration_time_sec" value="90.0"/>
+        <param name="gmapping_node_name" value="/slam_gmapping"/>
+        <param name="stop_robot_before_save" value="true"/>
+        <param name="exploration_done_topic" value="/exploration_done"/>
+        <param name="publish_exploration_done" value="true"/>
+    </node>
+    <node pkg="ris" type="aruco_processor.py" name="aruco_processor" output="screen">
+        <param name="camera_name" value="/csi_cam_0"/>
+        <param name="marker_size" value="0.038"/>
+        <param name="yaml_path" value="$(arg aruco_yaml)"/>
+        <param name="base_frame" value="base_footprint"/>
+        <param name="enable_mapping" value="true"/>
+        <param name="enable_localization" value="false"/>
+        <param name="process_every_n_frames" value="2"/>
+    </node>
+
+    <node pkg="ris" type="waypoint_saver.py" name="waypoint_saver" output="screen">
+        <param name="yaml_path" value="$(arg aruco_yaml)"/>
+    </node>
     <node pkg="ris" type="auto_explorer" name="auto_explorer" output="screen">
         <param name="scan_topic" value="/scan"/>
         <param name="odom_topic" value="/odom"/>

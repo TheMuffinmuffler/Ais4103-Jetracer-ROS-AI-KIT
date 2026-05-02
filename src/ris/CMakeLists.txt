@@ -1,47 +1,83 @@
 cmake_minimum_required(VERSION 3.10)
 project(ris)
 
-## Set C++ Standard
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_VERBOSE_MAKEFILE ON)
 
-## Add compile options
-add_compile_options(-fPIC -Wall -pedantic)
+add_compile_options(-fPIC -Wall -Wextra -pedantic)
 
-## 1. Find ROS Packages
 find_package(catkin REQUIRED COMPONENTS
         roscpp
+        rospy
         roslib
         ris_msgs
         std_msgs
+        std_srvs
         message_runtime
         nav_msgs
         geometry_msgs
         sensor_msgs
+        tf
         tf2
         tf2_ros
+        tf2_geometry_msgs
+        nav_core
+        costmap_2d
+        pluginlib
+        move_base_msgs
+        actionlib
+        actionlib_msgs
 )
 
-## 2. Declare Include Directories
+catkin_package(
+        INCLUDE_DIRS include
+        LIBRARIES ris_astar_global_planner
+        CATKIN_DEPENDS
+        roscpp
+        rospy
+        roslib
+        ris_msgs
+        std_msgs
+        std_srvs
+        message_runtime
+        nav_msgs
+        geometry_msgs
+        sensor_msgs
+        tf
+        tf2
+        tf2_ros
+        tf2_geometry_msgs
+        nav_core
+        costmap_2d
+        pluginlib
+        move_base_msgs
+        actionlib
+        actionlib_msgs
+)
+
 include_directories(
+        include
         ${catkin_INCLUDE_DIRS}
 )
 
-## 3. Catkin Package Configuration
-catkin_package(
-        CATKIN_DEPENDS
-        roscpp
-        roslib
-        ris_msgs
-        std_msgs
-        message_runtime
-        nav_msgs
-        geometry_msgs
-        sensor_msgs
-        tf2
-        tf2_ros
+add_subdirectory(src)
+
+install(DIRECTORY launch
+        DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )
 
-## 4. Traverse into the src folder
-add_subdirectory(src)
+install(DIRECTORY config
+        DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+)
+
+install(FILES plugin_description.xml
+        DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+)
+
+catkin_install_python(PROGRAMS
+        scripts/aruco_processor.py
+        scripts/waypoint_saver.py
+        scripts/marker_goal_navigator.py
+        DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)

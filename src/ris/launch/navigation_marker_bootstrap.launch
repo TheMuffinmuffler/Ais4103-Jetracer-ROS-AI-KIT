@@ -1,0 +1,58 @@
+<?xml version="1.0"?>
+<launch>
+    <arg name="map_file" default="/home/jetson/catkin_ws/src/Ais4103-Jetracer-ROS-AI-KIT/src/ris/map/mymap.yaml"/>
+    <arg name="aruco_yaml" default="/home/jetson/catkin_ws/src/Ais4103-Jetracer-ROS-AI-KIT/src/ris/map/aruco_waypoints.yaml"/>
+    <param name="use_sim_time" value="false"/>
+    <node pkg="tf" type="static_transform_publisher" name="base_footprint_to_camera"
+          args="0.190 0.0 0.111 0.0 0.0 0.0 base_footprint csi_cam_0_link 20" />
+    <node name="map_server"
+          pkg="map_server"
+          type="map_server"
+          args="$(arg map_file)"
+          output="screen" />
+    <node pkg="amcl" type="amcl" name="amcl" output="screen" clear_params="true">
+        <rosparam file="$(find ris)/config/navigation/amcl.yaml" command="load"/>
+        <remap from="scan" to="/scan"/>
+    </node>
+
+    <node pkg="move_base" type="move_base" name="move_base" output="screen" clear_params="true">
+        <rosparam file="$(find ris)/config/navigation/costmap_common.yaml" command="load" ns="global_costmap"/>
+        <rosparam file="$(find ris)/config/navigation/costmap_common.yaml" command="load" ns="local_costmap"/>
+        <rosparam file="$(find ris)/config/navigation/global_costmap.yaml" command="load"/>
+        <rosparam file="$(find ris)/config/navigation/local_costmap.yaml" command="load"/>
+        <rosparam file="$(find ris)/config/navigation/move_base.yaml" command="load"/>
+        <rosparam file="$(find ris)/config/navigation/teb_local_planner.yaml" command="load"/>
+    </node>
+
+    <node pkg="ris"
+          type="aruco_processor.py"
+          name="aruco_processor"
+          output="screen">
+        <param name="camera_name" value="/csi_cam_0"/>
+        <param name="marker_size" value="0.038"/>
+        <param name="yaml_path" value="$(arg aruco_yaml)"/>
+        <param name="base_frame" value="base_footprint"/>
+        <param name="enable_mapping" value="false"/>
+        <param name="enable_localization" value="true"/>
+        <param name="bootstrap_marker_id" value="1"/>
+        <param name="bootstrap_only_once" value="true"/>
+        <param name="process_every_n_frames" value="2"/>
+        <param name="localization_cooldown_sec" value="20.0"/>
+        <param name="min_marker_distance_m" value="0.10"/>
+        <param name="max_marker_distance_m" value="1.50"/>
+        <param name="required_consecutive_detections" value="5"/>
+    </node>
+
+    <node pkg="ris"
+          type="marker_goal_navigator.py"
+          name="marker_goal_navigator"
+          output="screen">
+        <param name="yaml_path" value="$(arg aruco_yaml)"/>
+        <param name="map_frame" value="map"/>
+        <param name="move_base_action" value="/move_base"/>
+        <param name="goal_topic" value="/target_marker_id"/>
+        <param name="wait_for_server_sec" value="120.0"/>
+        <param name="goal_timeout_sec" value="120.0"/>
+        <param name="use_heading_to_goal" value="true"/>
+    </node>
+</launch>

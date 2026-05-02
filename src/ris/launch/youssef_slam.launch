@@ -19,5 +19,7 @@
     <param name="stop_robot_before_save" value="true"/>
     <param name="exploration_done_topic" value="/exploration_done"/>
     <param name="publish_exploration_done" value="true"/>
+
+
   </node>
 </launch>

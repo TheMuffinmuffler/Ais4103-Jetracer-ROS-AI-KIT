@@ -1,0 +1,9 @@
+<library path="lib/libris_astar_global_planner">
+    <class name="ris/AStarGlobalPlanner"
+           type="ris_navigation::AStarGlobalPlanner"
+           base_class_type="nav_core::BaseGlobalPlanner">
+        <description>
+            Custom A* global planner for RIS navigation.
+        </description>
+    </class>
+</library>
