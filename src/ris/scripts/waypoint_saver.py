@@ -47,14 +47,9 @@ class WaypointSaver(object):
             marker_id = int(msg.header.frame_id)
             map_x = msg.pose.position.x
             map_y = msg.pose.position.y
-
-            q = [
-                msg.pose.orientation.x,
-                msg.pose.orientation.y,
-                msg.pose.orientation.z,
-                msg.pose.orientation.w
-            ]
-            _, _, yaw = tft.euler_from_quaternion(q)
+            # Convert Quaternion to Euler to get Yaw
+            q = [msg.pose.orientation.x, msg.pose.orientation.y, msg.pose.orientation.z, msg.pose.orientation.w]
+            _, _, yaw = tft.euler_from_quaternion(q) #_ to ignore output
 
             self.save_to_yaml(marker_id, map_x, map_y, yaw)
 

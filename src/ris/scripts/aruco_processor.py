@@ -62,8 +62,7 @@ class ArucoProcessor:
         self.aruco_params = aruco.DetectorParameters_create()
 
         # Mapping Data
-        self.mapping_ids = [1, 2, 3, 4]
-        self.buffers = {mid: [] for mid in self.mapping_ids}
+        self.buffers = {}
         self.buffer_size = 10
 
         # Localization Data
@@ -102,6 +101,7 @@ class ArucoProcessor:
                       self.enable_mapping, self.enable_localization, self.bootstrap_marker_id)
 
     def handle_toggle_mode(self, req):
+        # Toggle between mapping and localization if one is on the other is false
         if self.enable_mapping:
             self.enable_mapping = False
             self.enable_localization = True
@@ -117,6 +117,7 @@ class ArucoProcessor:
         rospy.loginfo(msg)
         return TriggerResponse(success=True, message=msg)
 
+    #To toggle mapping or localization independently
     def handle_toggle_mapping(self, req):
         self.enable_mapping = not self.enable_mapping
         msg = "Mapping is now " + ("ON" if self.enable_mapping else "OFF")
@@ -170,22 +171,28 @@ class ArucoProcessor:
         self.has_info = True
 
     def image_callback(self, data):
+        # Prints debug image to rviz if there is none
         self.counter += 1
         if self.counter < self.process_every_n_frames:
             return
         self.counter = 0
 
         try:
+            # Convert raw to bgr8 for CV
             img = self.bridge.imgmsg_to_cv2(data, "bgr8")
             gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
-
+            
+            # Only detect and estimate pose if there is valid camera info
             if not self.has_info:
+                # Optionally publish raw image for debugging
                 if self.debug_image_pub.get_num_connections() > 0:
                     self.debug_image_pub.publish(self.bridge.cv2_to_imgmsg(img, "bgr8"))
                 return
 
             saw_bootstrap_marker = False
-
+            found_any = False
+            
+            # checking for all marker dictinaries
             for adict in self.aruco_dicts:
                 corners, ids, _ = aruco.detectMarkers(gray, adict, parameters=self.aruco_params)
 
@@ -216,6 +223,10 @@ class ArucoProcessor:
                         if self.min_marker_distance_m <= distance <= self.max_marker_distance_m:
                             saw_bootstrap_marker = True
                             self.localize_from_marker(marker_id, rvecs[i][0], tvecs[i][0])
+                        
+                        # 2. MAPPING LOGIC
+                        if self.enable_mapping:
+                            self.process_mapping(marker_id, rvecs[i][0], tvecs[i][0])
 
                     if self.enable_mapping and marker_id in self.mapping_ids:
                         self.process_mapping(marker_id, rvecs[i][0], tvecs[i][0])
@@ -233,6 +244,8 @@ class ArucoProcessor:
             rospy.logerr_throttle(10, "ArUco Error: %s", e)
 
     def process_mapping(self, marker_id, rvec, tvec):
+        if marker_id not in self.buffers:
+            self.buffers[marker_id] = []
         try:
             x_dist, y_dist, z_dist = tvec[0], tvec[1], tvec[2]
 
