@@ -9,6 +9,7 @@ import yaml
 import os
 from sensor_msgs.msg import Image, CompressedImage, CameraInfo
 from geometry_msgs.msg import PoseWithCovarianceStamped, PoseStamped
+from std_msgs.msg import Int32
 from visualization_msgs.msg import Marker
 from std_srvs.srv import Trigger, TriggerResponse
 from cv_bridge import CvBridge
@@ -84,6 +85,11 @@ class ArucoProcessor:
             Image,
             self.image_callback
         )
+        self.bootstrap_id_sub = rospy.Subscriber(
+            "~set_bootstrap_id",
+            Int32,
+            self.set_bootstrap_id_callback
+        )
 
         # Publishers
         self.pose_pub = rospy.Publisher("/initialpose", PoseWithCovarianceStamped, queue_size=10)
@@ -135,6 +141,17 @@ class ArucoProcessor:
         msg = "Localization is now " + ("ON" if self.enable_localization else "OFF")
         rospy.loginfo(msg)
         return TriggerResponse(success=True, message=msg)
+
+    def set_bootstrap_id_callback(self, msg):
+        new_id = int(msg.data)
+        if new_id in self.landmarks:
+            self.bootstrap_marker_id = new_id
+            self.localization_done = False
+            self.last_localization_time = rospy.Time(0)
+            self.localization_detection_count = 0
+            rospy.loginfo("Bootstrap Marker ID updated to: %d. Ready for re-localization.", new_id)
+        else:
+            rospy.logwarn("Received new Bootstrap ID %d, but it is not in the loaded landmarks. Ignoring.", new_id)
 
     def load_landmarks(self):
         landmarks = {}
