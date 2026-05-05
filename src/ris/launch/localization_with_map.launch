@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<launch>
+    <!-- 1. Load the Map -->
+    <!-- Replace 'my_map.yaml' with the actual name of your saved map file -->
+    <arg name="map_file" default="$(find ris)/map/my_map.yaml"/>
+    <node name="map_server" pkg="map_server" type="map_server" args="$(arg map_file)" />
+
+    <!-- 2. TF Static Transforms (Camera position on the robot) -->
+    <node pkg="tf" type="static_transform_publisher" name="base_footprint_to_camera"
+          args="0.185 0.0 0.111 0.0 0.0 0.0 base_footprint csi_cam_0_link 50" />
+
+    <!-- 3. ArUco Localization (Visual GPS) -->
+    <node pkg="ris" type="aruco_processor.py" name="aruco_processor" output="screen">
+        <param name="camera_name" value="/csi_cam_0"/>
+        <param name="marker_size" value="0.0365"/>
+        <param name="enable_mapping" value="false"/>
+        <param name="enable_localization" value="true"/>
+        <param name="bootstrap_marker_id" value="7"/> <!-- Change this to your start marker -->
+        <param name="bootstrap_only_once" value="true"/>
+        
+        <!-- Path to the markers we saved during mapping -->
+        <param name="yaml_path" value="$(find ris)/map/aruco_waypoints.yaml"/>
+    </node>
+
+    <!-- 4. (Optional) Start AMCL if you want to keep localizing while driving -->
+    <!-- 
+    <include file="$(find jetracer_ros)/launch/amcl.launch" /> 
+    -->
+
+</launch>

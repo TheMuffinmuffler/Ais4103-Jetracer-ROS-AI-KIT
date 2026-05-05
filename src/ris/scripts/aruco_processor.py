@@ -22,7 +22,7 @@ class ArucoProcessor:
 
         # Parameters
         self.camera_name = rospy.get_param("~camera_name", "/csi_cam_0")
-        self.marker_size = rospy.get_param("~marker_size", 0.038)
+        self.marker_size = rospy.get_param("~marker_size", 0.0365)
         self.yaml_path = rospy.get_param(
             "~yaml_path",
             os.path.expanduser("~/catkin_ws/src/ris/map/aruco_waypoints.yaml")
@@ -65,6 +65,9 @@ class ArucoProcessor:
         # Mapping Data
         self.buffers = {}
         self.buffer_size = 10
+        self.mapping_ids = rospy.get_param("~mapping_ids", [])  # List of IDs to map if not bootstrapping
+        if isinstance(self.mapping_ids, str):
+            self.mapping_ids = [int(x.strip()) for x in self.mapping_ids.split(",") if x.strip()]
 
         # Localization Data
         self.landmarks = self.load_landmarks()
@@ -235,18 +238,18 @@ class ArucoProcessor:
                 for i in range(len(ids)):
                     marker_id = int(ids[i][0])
 
+                    # 1. LOCALIZATION LOGIC (Bootstrap)
                     if self.enable_localization and marker_id == self.bootstrap_marker_id and marker_id in self.landmarks:
                         distance = float(np.linalg.norm(tvecs[i][0]))
                         if self.min_marker_distance_m <= distance <= self.max_marker_distance_m:
                             saw_bootstrap_marker = True
                             self.localize_from_marker(marker_id, rvecs[i][0], tvecs[i][0])
                         
-                        # 2. MAPPING LOGIC
-                        if self.enable_mapping:
+                    # 2. MAPPING LOGIC
+                    if self.enable_mapping:
+                        # Map if mapping_ids is empty (map everything) or if marker is in the list
+                        if not self.mapping_ids or marker_id in self.mapping_ids:
                             self.process_mapping(marker_id, rvecs[i][0], tvecs[i][0])
-
-                    if self.enable_mapping and marker_id in self.mapping_ids:
-                        self.process_mapping(marker_id, rvecs[i][0], tvecs[i][0])
 
             if self.enable_localization and not saw_bootstrap_marker:
                 self.localization_detection_count = 0
@@ -392,28 +395,50 @@ class ArucoProcessor:
         rospy.loginfo("Bootstrap pose reset by Marker %s", marker_id)
 
     def publish_rviz_marker(self, marker_id, x, y, quat):
-        marker = Marker()
-        marker.header.frame_id = "map"
-        marker.header.stamp = rospy.Time.now()
-        marker.ns = "aruco"
-        marker.id = marker_id
-        marker.type = Marker.CUBE
+        marker_array = MarkerArray()
 
-        marker.pose.position.x = x
-        marker.pose.position.y = y
-        marker.pose.position.z = 0.05
-        marker.pose.orientation = quat
+        # 1. THE CUBE (Visual representation)
+        cube = Marker()
+        cube.header.frame_id = "map"
+        cube.header.stamp = rospy.Time.now()
+        cube.ns = "aruco_cubes"
+        cube.id = marker_id
+        cube.type = Marker.CUBE
+        cube.action = Marker.ADD
+        cube.pose.position.x = x
+        cube.pose.position.y = y
+        cube.pose.position.z = 0.05
+        cube.pose.orientation = quat
+        cube.scale.x = 0.08
+        cube.scale.y = 0.08
+        cube.scale.z = 0.08
+        cube.color.r = 0.0
+        cube.color.g = 1.0
+        cube.color.b = 0.0
+        cube.color.a = 1.0
+        marker_array.markers.append(cube)
 
-        marker.scale.x = 0.08
-        marker.scale.y = 0.08
-        marker.scale.z = 0.08
+        # 2. THE TEXT (The ID number)
+        text = Marker()
+        text.header.frame_id = "map"
+        text.header.stamp = rospy.Time.now()
+        text.ns = "aruco_labels"
+        text.id = marker_id
+        text.type = Marker.TEXT_VIEW_FACING
+        text.action = Marker.ADD
+        text.pose.position.x = x
+        text.pose.position.y = y
+        text.pose.position.z = 0.2  # Floating above the cube
+        text.pose.orientation.w = 1.0
+        text.scale.z = 0.1  # Height of text in meters
+        text.color.r = 1.0
+        text.color.g = 1.0
+        text.color.b = 1.0
+        text.color.a = 1.0
+        text.text = "ID: {}".format(marker_id)
+        marker_array.markers.append(text)
 
-        marker.color.r = 0.0
-        marker.color.g = 1.0
-        marker.color.b = 0.0
-        marker.color.a = 1.0
-
-        self.rviz_pub.publish(marker)
+        self.rviz_pub.publish(marker_array)
 
 
 if __name__ == "__main__":

@@ -1,23 +1,23 @@
 <?xml version="1.0"?>
 <launch>
     <!-- 1. TF Fixes (Bypassing potential slash issues and timing gaps) -->
-    
+
     <!-- IMU Transform Booster (50Hz) - Fixes the "Imu will not be activated" warning -->
-    <node pkg="tf" type="static_transform_publisher" name="ris_imu_fix" 
+    <node pkg="tf" type="static_transform_publisher" name="ris_imu_fix"
           args="0 0 0.02 0 0 0 base_footprint base_imu_link 50" />
-    
+
     <!-- Laser Transform Fix (No slashes for compatibility) -->
-    <node pkg="tf" type="static_transform_publisher" name="ris_laser_fix" 
+    <node pkg="tf" type="static_transform_publisher" name="ris_laser_fix"
           args="0 0.0 0.1 3.14 0.0 0.0 base_footprint laser_frame 50" />
 
     <!-- 2. Start the SLAM System -->
-    
+
     <!-- Gmapping: Using odom_frame 'odom' to match EKF output -->
     <node pkg="gmapping" type="slam_gmapping" name="slam_gmapping" output="screen">
         <remap from="scan" to="scan"/>
         <param name="base_frame" value="base_footprint"/>
-        <param name="odom_frame" value="odom"/> 
-        <param name="map_update_interval" value="5.0"/> 
+        <param name="odom_frame" value="odom"/>
+        <param name="map_update_interval" value="5.0"/>
         <param name="maxUrange" value="8.0"/>
         <param name="minimumScore" value="50"/>
         <param name="particles" value="30"/>

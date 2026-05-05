@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<launch>
+    <!-- 1. Physical Hardware Drivers -->
+    <include file="$(find jetracer)/launch/master_hardware.launch" />
+
+    <!-- 2. Keyboard Teleop -->
+    <!-- Note: This node must be run in the terminal where you want to type -->
+    <node pkg="jetracer" type="teleop_key.py" name="teleop_key" output="screen" launch-prefix="xterm -e">
+    </node>
+</launch>

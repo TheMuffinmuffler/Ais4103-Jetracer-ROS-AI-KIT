@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<launch>
+    <!-- 2. TF Static Transforms (Physical measurements) -->
+    <!-- Note: IMU and Laser transforms are handled by master_hardware.launch -->
+
+    <node pkg="tf" type="static_transform_publisher" name="base_footprint_to_camera"
+          args="0.185 0.0 0.111 0.0 0.0 0.0 base_footprint csi_cam_0_link 50" />
+
+    <!-- 3. SLAM (Gmapping) -->
+    <node pkg="gmapping" type="slam_gmapping" name="slam_gmapping" output="screen">
+        <remap from="scan" to="scan"/>
+        <param name="base_frame" value="base_footprint"/>
+        <param name="odom_frame" value="odom"/> 
+        <param name="delta" value="0.05"/>
+        <param name="map_update_interval" value="2.0"/>
+    </node>
+
+    <!-- 4. ArUco Processor (Mapping Mode for Visuals) -->
+    <node pkg="ris" type="aruco_processor.py" name="aruco_processor" output="screen">
+        <param name="camera_name" value="/csi_cam_0"/>
+        <param name="marker_size" value="0.0365"/>
+        <param name="enable_mapping" value="true"/>
+        <param name="enable_localization" value="false"/>
+        <param name="process_every_n_frames" value="2"/>
+    </node>
+
+    <!-- 5. Waypoint Saver (Optional, to keep data) -->
+    <node pkg="ris" type="waypoint_saver.py" name="waypoint_saver" output="screen" />
+
+</launch>

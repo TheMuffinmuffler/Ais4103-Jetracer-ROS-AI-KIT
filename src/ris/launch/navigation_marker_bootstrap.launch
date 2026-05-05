@@ -4,7 +4,7 @@
     <arg name="aruco_yaml" default="/home/jetson/catkin_ws/src/Ais4103-Jetracer-ROS-AI-KIT/src/ris/map/aruco_waypoints.yaml"/>
     <param name="use_sim_time" value="false"/>
     <node pkg="tf" type="static_transform_publisher" name="base_footprint_to_camera"
-          args="0.190 0.0 0.111 0.0 0.0 0.0 base_footprint csi_cam_0_link 20" />
+          args="0.185 0.0 0.111 0.0 0.0 0.0 base_footprint csi_cam_0_link 50" />
     <node name="map_server"
           pkg="map_server"
           type="map_server"
@@ -29,7 +29,7 @@
           name="aruco_processor"
           output="screen">
         <param name="camera_name" value="/csi_cam_0"/>
-        <param name="marker_size" value="0.038"/>
+        <param name="marker_size" value="0.0365"/>
         <param name="yaml_path" value="$(arg aruco_yaml)"/>
         <param name="base_frame" value="base_footprint"/>
         <param name="enable_mapping" value="false"/>
