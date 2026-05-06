@@ -100,10 +100,10 @@ private:
 - {id: 3, x: 14.6693248749, y: 8.143907547}
 - {id: 4, x: 17.9891986847, y: 0.419644832611}
 */ 
-    double start_wx = -4.00995779037;
-    double start_wy = -0.996777892113;
-    double goal_wx  = 14.6693248749;
-    double goal_wy  = 8.143907547;// 3
+    double start_wx = 4.34944057465;
+    double start_wy = -0.553416728973;//1
+    double goal_wx  = 15.0812244415;
+    double goal_wy  = 0.201877117157;// 2
 
 
 
