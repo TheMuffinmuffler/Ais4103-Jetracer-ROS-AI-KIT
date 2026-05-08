@@ -1,3 +1,34 @@
+/*
+ * File: auto_explorer.cpp
+ * Node: auto_explorer
+ *
+ * Purpose:
+ * Project-specific autonomous exploration node for the JetRacer ROS platform.
+ * The node drives the robot during mapping by using LaserScan, Odometry,
+ * OccupancyGrid map data, and TF transforms.
+ *
+ * The node:
+ *   - reads laser sectors for obstacle avoidance,
+ *   - detects frontier cells in the occupancy grid,
+ *   - groups frontier cells into clusters using breadth-first search,
+ *   - scores frontier clusters and selects an exploration goal,
+ *   - computes a local waypoint toward the selected frontier,
+ *   - evaluates short-horizon velocity candidates,
+ *   - applies recovery behaviours when the robot is blocked or stuck,
+ *   - stops when /exploration_done is received from the SLAM supervisor node.
+ *
+ * Reuse / AI assistance:
+ * ChatGPT was used as programming support for parts of the ROS C++ structure,
+ * laser-scan filtering, frontier-clustering implementation, trajectory-candidate
+ * evaluation, recovery-state debugging, and general implementation debugging.
+ *
+ * The exploration strategy, parameter choices, integration with the SLAM
+ * workflow, and testing on the JetRacer platform were carried out as part of this project.
+ */
+ 
+
+
+
 #include <ros/ros.h>
 #include <sensor_msgs/LaserScan.h>
 #include <nav_msgs/Odometry.h>
@@ -45,7 +76,6 @@ public:
         pnh_.param("exploration_done_topic", done_topic_, std::string("/exploration_done"));
         pnh_.param("map_frame", map_frame_, std::string("map"));
         pnh_.param("base_frame", base_frame_, std::string("base_footprint"));
-
         pnh_.param("control_rate_hz", control_rate_hz_, 10.0);
 
         // Distances
@@ -53,11 +83,9 @@ public:
         pnh_.param("front_caution_dist", front_caution_dist_, 1.00);
         pnh_.param("front_block_dist", front_block_dist_, 0.55);
         pnh_.param("front_emergency_dist", front_emergency_dist_, 0.32);
-
         pnh_.param("rear_clear_dist", rear_clear_dist_, 0.65);
         pnh_.param("rear_block_dist", rear_block_dist_, 0.30);
         pnh_.param("rear_emergency_dist", rear_emergency_dist_, 0.20);
-
         pnh_.param("side_block_dist", side_block_dist_, 0.25);
         pnh_.param("side_emergency_dist", side_emergency_dist_, 0.16);
 
@@ -67,19 +95,15 @@ public:
         pnh_.param("forward_speed_recovery", forward_speed_recovery_, 0.24);
         pnh_.param("corridor_speed_max", corridor_speed_max_, 0.24);
         pnh_.param("reverse_speed", reverse_speed_, -0.20);
-
         pnh_.param("turn_speed_soft", turn_speed_soft_, 0.65);
         pnh_.param("turn_speed_hard", turn_speed_hard_, 1.20);
         pnh_.param("reverse_turn_speed", reverse_turn_speed_, 0.95);
-
         pnh_.param("reverse_duration_sec", reverse_duration_sec_, 0.65);
         pnh_.param("turn_duration_sec", turn_duration_sec_, 0.85);
         pnh_.param("escape_turn_duration_sec", escape_turn_duration_sec_, 1.60);
         pnh_.param("recovery_forward_duration_sec", recovery_forward_duration_sec_, 0.55);
-
         pnh_.param("stuck_timeout_sec", stuck_timeout_sec_, 1.20);
         pnh_.param("stuck_min_progress", stuck_min_progress_, 0.05);
-
         pnh_.param("max_recovery_attempts", max_recovery_attempts_, 4);
         pnh_.param("max_reverse_chain", max_reverse_chain_, 1);
         pnh_.param("reverse_cooldown_sec", reverse_cooldown_sec_, 2.5);
@@ -140,19 +164,15 @@ public:
         // Laser filtering
         pnh_.param("laser_sector_quantile", laser_sector_quantile_, 0.25);
         pnh_.param("laser_neighbor_reject_jump", laser_neighbor_reject_jump_, 0.50);
-
         scan_sub_ = nh_.subscribe(scan_topic_, 1, &AutoExplorer::scanCallback, this);
         odom_sub_ = nh_.subscribe(odom_topic_, 1, &AutoExplorer::odomCallback, this);
         map_sub_ = nh_.subscribe(map_topic_, 1, &AutoExplorer::mapCallback, this);
         done_sub_ = nh_.subscribe(done_topic_, 1, &AutoExplorer::doneCallback, this);
-
         cmd_pub_ = nh_.advertise<geometry_msgs::Twist>(cmd_topic_, 1);
         timer_ = nh_.createTimer(ros::Duration(1.0 / control_rate_hz_), &AutoExplorer::timerCallback, this);
-
         reverse_cooldown_until_ = ros::Time(0);
         last_visit_update_time_ = ros::Time(0);
         last_frontier_select_time_ = ros::Time(0);
-
         ROS_INFO("auto_explorer advanced production-style explorer started.");
     }
 
@@ -230,7 +250,11 @@ private:
     {
         latest_map_ = *msg;
         has_map_ = true;
-
+// The ROS occupancy grid is stored as a 2D discrete grid.
+// Therefore, the number of stored cells is:
+// N_cells = width * height
+// This follows the grid-based representation used in motion planning.
+// Source: Modern Robotics, Section 10.4 "Grid Methods", p. 371. 
         const std::size_t needed =
             static_cast<std::size_t>(latest_map_.info.width) *
             static_cast<std::size_t>(latest_map_.info.height);
@@ -257,7 +281,8 @@ private:
         geometry_msgs::Twist cmd;
         cmd_pub_.publish(cmd);
     }
-
+    
+// Limit x to the interval [lo, hi].
     double clamp(double x, double lo, double hi) const
     {
         return std::max(lo, std::min(x, hi));
@@ -267,7 +292,7 @@ private:
     {
         return std::isfinite(x) ? x : fallback;
     }
-
+ // Convert between degrees and radians (i do not think i need source here).
     double deg2rad(double deg) const
     {
         return deg * M_PI / 180.0;
@@ -278,6 +303,14 @@ private:
         return rad * 180.0 / M_PI;
     }
 
+
+// Normalizes a planar heading angle to the interval [-pi, pi].
+// Planar orientation is periodic, so angles that differ by 2*pi represent
+// the same orientation. Modern Robotics represents planar rotations using
+// angular coordinates, for example the 2D rotation matrix in Eq. (3.5),
+// and describes angular configuration spaces with wrapped intervals such as
+// [0, 2*pi) in Table 2.2.
+// Source: Modern Robotics, Eq. (3.5), p. 62, and Table 2.2, p. 26.
     double wrapAngleRad(double a) const
     {
         while (a > M_PI) a -= 2.0 * M_PI;
@@ -285,25 +318,33 @@ private:
         return a;
     }
 
+
+
+
+
     bool updateRobotPoseInMap()
     {
         try
         {
-            geometry_msgs::TransformStamped tf =
-                tf_buffer_.lookupTransform(map_frame_, base_frame_, ros::Time(0), ros::Duration(0.03));
+            geometry_msgs::TransformStamped tf = tf_buffer_.lookupTransform(map_frame_, base_frame_, ros::Time(0), ros::Duration(0.03));
 
+        // The translation part of the transform gives the robot position
+        // in the map frame, p = (x, y).
+        //Modern Robotics, Ch. 3, p. 61, Eq. (3.1).
             robot_map_x_ = tf.transform.translation.x;
             robot_map_y_ = tf.transform.translation.y;
-
+            
+            // Modern Robotics, Appendix B.3, p. 583, Eq. (B.9).
             const double qx = tf.transform.rotation.x;
             const double qy = tf.transform.rotation.y;
             const double qz = tf.transform.rotation.z;
             const double qw = tf.transform.rotation.w;
-
+            
+        
+        // Modern Robotics, App. B, p. 579, Eq. (B.4).
             const double siny_cosp = 2.0 * (qw * qz + qx * qy);
             const double cosy_cosp = 1.0 - 2.0 * (qy * qy + qz * qz);
             robot_map_yaw_ = std::atan2(siny_cosp, cosy_cosp);
-
             has_pose_in_map_ = true;
             return true;
         }
@@ -356,9 +397,13 @@ private:
 
         return vals;
     }
+    
+    
+    
 
     double robustSectorDistance(double deg_min, double deg_max) const
     {
+    // MR, Section 10.2.2, p. 364.
         std::vector<double> vals = collectSectorRanges(deg_min, deg_max);
         if (vals.empty())
             return std::numeric_limits<double>::infinity();
@@ -375,6 +420,8 @@ private:
 
     SectorInfo readSectors() const
     {
+    
+    //Modern Robotics, Ch. 10, p. 355.
         SectorInfo s;
         s.front = robustSectorDistance(-front_sector_deg_, front_sector_deg_);
         s.front_wide = robustSectorDistance(-front_wide_sector_deg_, front_wide_sector_deg_);
@@ -384,7 +431,6 @@ private:
         s.left = robustSectorDistance(-100.0, -70.0);
         s.right_diag = robustSectorDistance(35.0, 65.0);
         s.left_diag = robustSectorDistance(-65.0, -35.0);
-
         s.rear = robustSectorDistance(180.0 - rear_sector_deg_, 180.0);
         const double rear2 = robustSectorDistance(-180.0, -180.0 + rear_sector_deg_);
         if (rear2 < s.rear)
@@ -394,19 +440,24 @@ private:
         s.rear_right = robustSectorDistance(-160.0, -110.0);
         return s;
     }
+    
+    
 
     double odomX() const
     {
+    // Modern Robotics, Ch. 13, p. 525, Eq. (13.13) 
         return latest_odom_.pose.pose.position.x;
     }
 
     double odomY() const
     {
+    // Modern Robotics, Ch. 13, p. 525, Eq. (13.13)
         return latest_odom_.pose.pose.position.y;
     }
 
     double odomDistanceFrom(double x0, double y0) const
     {
+    //Modern Robotics, Ch. 13, p. 525, Eq. (13.13)
         const double dx = odomX() - x0;
         const double dy = odomY() - y0;
         return std::sqrt(dx * dx + dy * dy);
@@ -424,6 +475,7 @@ private:
 
         progress_tracking_ = true;
         progress_start_time_ = ros::Time::now();
+        // Modern Robotics, Ch. 3, p. 61, Eq. (3.1).
         progress_start_x_ = odomX();
         progress_start_y_ = odomY();
     }
@@ -436,7 +488,8 @@ private:
         const double elapsed = (ros::Time::now() - progress_start_time_).toSec();
         if (elapsed < stuck_timeout_sec_)
             return false;
-
+        
+        //Modern Robotics, Ch. 13, p. 525, Eq. (13.13).
         return odomDistanceFrom(progress_start_x_, progress_start_y_) < stuck_min_progress_;
     }
 
@@ -445,6 +498,7 @@ private:
         state_ = s;
         state_end_time_ = ros::Time::now() + ros::Duration(sec);
     }
+
 
     bool timedStateFinished() const
     {
@@ -467,10 +521,9 @@ private:
         center_error = s.left - s.right;
 
         // slightly stronger corridor validation
-        const bool roughly_parallel =
-            std::isfinite(s.front_left) && std::isfinite(s.front_right) &&
-            std::fabs(s.front_left - s.left) < 0.35 &&
-            std::fabs(s.front_right - s.right) < 0.35;
+        // Modern Robotics, Ch. 10, p. 355.
+        const bool roughly_parallel = std::isfinite(s.front_left) && std::isfinite(s.front_right) &&
+            std::fabs(s.front_left - s.left) < 0.35 && std::fabs(s.front_right - s.right) < 0.35;
 
         return corridor_width <= corridor_width_threshold_ && roughly_parallel;
     }
@@ -480,20 +533,21 @@ private:
         double left_score = 0.0;
         double right_score = 0.0;
 
+        //Modern Robotics, Ch. 10, p. 355
         if (std::isfinite(s.front_left)) left_score += 1.6 * s.front_left;
-        if (std::isfinite(s.left_diag))  left_score += 1.0 * s.left_diag;
-        if (std::isfinite(s.left))       left_score += 0.9 * s.left;
-        if (std::isfinite(s.rear_left))  left_score += 0.4 * s.rear_left;
+        if (std::isfinite(s.left_diag)) left_score += 1.0 * s.left_diag;
+        if (std::isfinite(s.left)) left_score += 0.9 * s.left;
+        if (std::isfinite(s.rear_left)) left_score += 0.4 * s.rear_left;
 
         if (std::isfinite(s.front_right)) right_score += 1.6 * s.front_right;
-        if (std::isfinite(s.right_diag))  right_score += 1.0 * s.right_diag;
-        if (std::isfinite(s.right))       right_score += 0.9 * s.right;
-        if (std::isfinite(s.rear_right))  right_score += 0.4 * s.rear_right;
+        if (std::isfinite(s.right_diag)) right_score += 1.0 * s.right_diag;
+        if (std::isfinite(s.right)) right_score += 0.9 * s.right;
+        if (std::isfinite(s.rear_right)) right_score += 0.4 * s.rear_right;
 
         if (std::fabs(left_score - right_score) < 0.10)
             preferred_left_ = !preferred_left_;
         else
-            preferred_left_ = left_score > right_score;
+            preferred_left_ =left_score > right_score;
     }
 
     bool worldToMap(double wx, double wy, int& mx, int& my) const
@@ -505,16 +559,20 @@ private:
         const double origin_y = latest_map_.info.origin.position.y;
         const double res = latest_map_.info.resolution;
 
+         // Modern Robotics, Sec. 10.4, p. 371
         mx = static_cast<int>(std::floor((wx - origin_x) / res));
         my = static_cast<int>(std::floor((wy - origin_y) / res));
 
         if (mx < 0 || my < 0)
             return false;
+            //Modern Robotics, Sec. 10.4, pp. 371-373
         if (mx >= static_cast<int>(latest_map_.info.width) || my >= static_cast<int>(latest_map_.info.height))
             return false;
 
         return true;
     }
+    
+     
 
     void mapToWorld(int mx, int my, double& wx, double& wy) const
     {
@@ -522,17 +580,20 @@ private:
         const double origin_y = latest_map_.info.origin.position.y;
         const double res = latest_map_.info.resolution;
 
+          // Modern Robotics, Sec. 10.4, pp. 371-373
         wx = origin_x + (static_cast<double>(mx) + 0.5) * res;
         wy = origin_y + (static_cast<double>(my) + 0.5) * res;
     }
 
     int gridIndex(int mx, int my) const
     {
+    // Modern Robotics, Sec. 10.4, pp. 371-373
         return my * static_cast<int>(latest_map_.info.width) + mx;
     }
 
     bool validCell(int mx, int my) const
     {
+      // Modern Robotics, Sec. 10.4, pp. 371-373
         return mx >= 0 && my >= 0 &&
                mx < static_cast<int>(latest_map_.info.width) &&
                my < static_cast<int>(latest_map_.info.height);
@@ -542,9 +603,38 @@ private:
     {
         if (!validCell(mx, my))
             return 100;
+            
+        // Modern Robotics, Sec. 10.4, pp. 371-373
         return latest_map_.data[gridIndex(mx, my)];
     }
 
+
+
+/*
+ * isFrontierCell() detects the boundary between known free space and unknown
+ * space in the occupancy grid.
+ *
+ * Project-specific frontier condition:
+ *
+ *     F(mx,my) = free(mx,my) AND exists unknown neighbor(mx,my)
+ *
+ * Source declaration:
+ * This exact frontier condition was implemented with ChatGPT assistance.
+ *
+ * The theoretical context is online exploration in an unknown environment,
+ * related to Russell and Norvig, Artificial Intelligence: A Modern Approach,
+ * 3rd ed., Chapter 4, Section 4.5, pages 147-153.
+ *
+ * The map is treated as a discrete grid. This is consistent with grid-based
+ * motion planning, where the configuration space is discretized into grid
+ * cells or grid points.
+ * Source: Modern Robotics, Chapter 10, Section 10.4
+ * "Grid Methods", pages 371-373.
+ *
+ * The implementation also uses the ROS OccupancyGrid representation, related
+ * to the occupancy-grid mapping discussion in Kudriashov et al., Chapter 3,
+ * pages 39-40.
+ */
     bool isFreeCell(int mx, int my) const
     {
         return cellValue(mx, my) == 0;
@@ -587,6 +677,61 @@ private:
         return isFreeCell(mx, my) && hasUnknownNeighbor(mx, my);
     }
 
+
+
+
+/*
+ * Grid-memory, traversability, line-of-sight, and blacklist helper functions.
+ *
+ * These functions operate on the ROS OccupancyGrid as a discrete 2D grid.
+ * They use project-specific heuristics for:
+ *
+ *     V(mx,my) = visit_counts[index(mx,my)]
+ *
+ *     r_cells = round(r_m / map_resolution)
+ *
+ *     d = sqrt(dx^2 + dy^2)
+ *
+ *     V_new = min(V_cap, V_old + 1)
+ *
+ *     traversable(mx,my) = true if all checked cells inside the
+ *     clearance radius are valid and not occupied
+ *
+ *     w(t) = w0 + t(w1 - w0)
+ *
+ *     blacklist(gx,gy) = true if distance to a blacklisted goal is
+ *     less than or equal to the blacklist radius
+ *
+ *     rho_unknown = N_unknown / N_total
+ *
+ * Source declaration:
+ * These exact implementation rules are project-specific and were implemented
+ * with ChatGPT assistance. Modern Robotics does not give these exact visit
+ * memory, blacklist, unknown-density, or ROS OccupancyGrid indexing equations.
+ *
+ * The theoretical grid-planning context is related to grid methods, where the
+ * configuration space is discretized into grid points/cells for motion planning.
+ * Source: Lynch and Park, Modern Robotics, Chapter 10, Section 10.4
+ * "Grid Methods", pages 371-373.
+ *
+ * Figure reference:
+ * Modern Robotics, Figure 10.10, page 373, compares grid-based distance
+ * measures, including Euclidean distance in Fig. 10.10(b). This supports the
+ * use of Euclidean distance tests such as sqrt(dx^2 + dy^2) and hypot(dx,dy)
+ * in the grid-based clearance and blacklist checks.
+ *
+ * For line-of-sight sampling, the interpolation
+ *
+ *     w(t) = w0 + t(w1 - w0)
+ *
+ * is related to straight-line paths.
+ * Source: Modern Robotics, Chapter 9, Section 9.2.1
+ * "Straight-Line Paths", page 328.
+ *
+ * The implementation also uses the ROS OccupancyGrid representation, related
+ * to the occupancy-grid mapping discussion in Kudriashov et al., Chapter 3,
+ * pages 39-40.
+ */
     double visitValue(int mx, int my) const
     {
         if (!validCell(mx, my))
@@ -595,7 +740,6 @@ private:
         const int idx = gridIndex(mx, my);
         if (idx < 0 || idx >= static_cast<int>(visit_counts_.size()))
             return visit_penalty_cap_;
-
         return visit_counts_[idx];
     }
 
@@ -603,11 +747,9 @@ private:
     {
         if (!has_map_ || !has_pose_in_map_)
             return;
-
         const ros::Time now = ros::Time::now();
         if ((now - last_visit_update_time_).toSec() < 0.35)
             return;
-
         int mx, my;
         if (!worldToMap(robot_map_x_, robot_map_y_, mx, my))
             return;
@@ -623,7 +765,9 @@ private:
                 const int ny = my + dy;
                 if (!validCell(nx, ny))
                     continue;
-
+                    
+               // Euclidean grid distance.
+                //Modern Robotics, Fig. 10.10(b), p. 373
                 const double dist = std::sqrt(static_cast<double>(dx * dx + dy * dy));
                 if (dist > radius_cells)
                     continue;
@@ -676,6 +820,8 @@ private:
 
         for (double d = 0.0; d <= dist; d += step)
         {
+           // Straight-line sampling between the start and goal point.
+           // Modern Robotics, Sec. 9.2.1 "Straight-Line Paths", p. 328
             const double t = d / dist;
             const double wx = wx0 + t * dx;
             const double wy = wy0 + t * dy;
@@ -726,7 +872,7 @@ private:
     }
 
     double estimateUnknownDensityAroundFrontierCell(int mx, int my) const
-    {
+    { 
         int unknown_count = 0;
         int total = 0;
         for (int dy = -2; dy <= 2; ++dy)
@@ -750,6 +896,58 @@ private:
         return static_cast<double>(unknown_count) / static_cast<double>(total);
     }
 
+
+
+/*
+ * extractFrontierClusters() groups connected frontier cells in the occupancy
+ * grid.
+ *
+ * Project-specific frontier condition:
+ *
+ *     F(mx,my) = free(mx,my) AND exists unknown neighbor(mx,my)
+ *
+ * Cluster construction:
+ *
+ *     N_cells = width * height
+ *
+ *     frontier_mask[index(mx,my)] = 1 if F(mx,my) is true
+ *
+ *     cluster = connected component of neighbouring frontier cells
+ *
+ *     reject cluster if |cluster.cells| < frontier_min_cluster_size_
+ *
+ * Cluster features:
+ *
+ *     centroid = average world position of all cells in the cluster
+ *
+ *     nearest point = cluster cell with minimum Euclidean distance to robot
+ *
+ *     visit_penalty = average visit value over cluster cells
+ *
+ *     unknown_density_score = average unknown-density value over cluster cells
+ *
+ *     width_score = fraction of cluster cells passing local traversability test
+ *
+ * Source declaration:
+ * This exact frontier clustering and scoring implementation is project-specific
+ * and was implemented with ChatGPT assistance, then adapted for this project.
+ *
+ * The graph-search part is related to standard graph search. Modern Robotics
+ * discusses graph search for motion planning in Chapter 10, Section 10.2.4,
+ * pages 367-368. It describes representing free space as a graph and searching
+ * that graph for a path.
+ *
+ * The queue-based connected-component expansion is also closely related to the
+ * wavefront/grid expansion shown in Modern Robotics, Figure 10.11, page 373,
+ * where free neighbours in a 2D grid are expanded breadth-first.
+ *
+ * The grid representation is related to Modern Robotics, Chapter 10,
+ * Section 10.4 "Grid Methods", pages 371-373. Figure 10.10, page 373, shows
+ * 4-connected and 8-connected grid neighbourhoods and Euclidean distance on
+ * grid points.
+ *
+ * The frontier idea itself is not an equation from Modern Robotics.
+ */
     std::vector<FrontierCluster> extractFrontierClusters()
     {
         std::vector<FrontierCluster> clusters;
@@ -780,7 +978,7 @@ private:
                 const int start_idx = gridIndex(mx, my);
                 if (!frontier_mask[start_idx] || visited[start_idx])
                     continue;
-
+                // // Sec. 10.2.4 "Graph Search", pp. 367-368, and Fig. 10.11, p. 373
                 std::queue<std::pair<int, int> > q;
                 FrontierCluster cluster;
                 cluster.centroid_x = 0.0;
@@ -812,7 +1010,8 @@ private:
                     mapToWorld(cx, cy, wx, wy);
                     cluster.centroid_x += wx;
                     cluster.centroid_y += wy;
-
+                      
+                      // MR, Fig. 10.10(b), p. 373
                     const double dist = std::hypot(wx - robot_map_x_, wy - robot_map_y_);
                     if (dist < cluster.distance_to_robot)
                     {
@@ -827,7 +1026,7 @@ private:
                     // width proxy: free clearance around frontier
                     if (areaIsTraversable(cx, cy, 1))
                         cluster.width_score += 1.0;
-
+                     // Fig. 10.10(a), p. 373
                     for (int dy = -1; dy <= 1; ++dy)
                     {
                         for (int dx = -1; dx <= 1; ++dx)
@@ -867,6 +1066,42 @@ private:
         return clusters;
     }
 
+
+
+/*
+ * computeGoalForCluster() converts a frontier cluster into a reachable local
+ * navigation goal.
+ *
+ * Project-specific goal rule:
+ *
+ *     direction = (centroid - robot_position) / ||centroid - robot_position||
+ *
+ *     goal = centroid - pullback_distance * direction
+ *
+ * The pullback keeps the goal slightly inside known free space instead of
+ * placing it directly on the frontier boundary.
+ *
+ * Validation checks:
+ *   1. Goal must be inside the map.
+ *   2. Goal cell must be free.
+ *   3. Clearance area around the goal must be traversable.
+ *   4. Line of sight from robot to goal must be free.
+ *   5. Goal must not be temporarily blacklisted.
+ *
+ * Source declaration:
+ * This exact goal-pullback and validation method is project-specific and was
+ * implemented with ChatGPT assistance, then adapted for this project.
+ *
+ * The use of Euclidean distance and grid neighbourhoods is related to
+ * Modern Robotics, Figure 10.10, page 373.
+ *
+ * The grid-based collision-free validation is related to Modern Robotics,
+ * Chapter 10, Section 10.4 "Grid Methods", pages 371-373.
+ *
+ * The straight-line line-of-sight check is related to straight-line paths in
+ * Modern Robotics, Chapter 9, Section 9.2.1, page 328.
+ */
+ 
     bool computeGoalForCluster(FrontierCluster& cluster, double& goal_x, double& goal_y)
     {
         if (!has_map_ || !has_pose_in_map_)
@@ -874,7 +1109,7 @@ private:
 
         const double dx = cluster.centroid_x - robot_map_x_;
         const double dy = cluster.centroid_y - robot_map_y_;
-        const double dist = std::hypot(dx, dy);
+        const double dist = std::hypot(dx, dy); // MR, Fig. 10.10(b), p. 373
 
         if (dist < 1e-6)
             return false;
@@ -897,7 +1132,8 @@ private:
 
         if (!areaIsTraversable(mx, my, clearance_cells))
             return false;
-
+         
+         //Modern Robotics, Ch. 9, Sec. 9.2.1 "Straight-Line Paths", p. 328 
         if (!lineOfSightFree(robot_map_x_, robot_map_y_, goal_x, goal_y, frontier_robot_clearance_m_))
             return false;
 
@@ -907,6 +1143,64 @@ private:
         return true;
     }
 
+
+
+/*
+ * selectBestFrontierGoal() selects the best reachable frontier goal using a
+ * project-specific heuristic evaluation function.
+ *
+ * Candidate-goal geometry:
+ *
+ *     dx = gx - robot_x
+ *     dy = gy - robot_y
+ *     d  = sqrt(dx^2 + dy^2)
+ *
+ *     target_yaw  = atan2(dy, dx)
+ *     heading_err = wrap(target_yaw - robot_yaw)
+ *
+ * Heuristic score:
+ *
+ *     score = size_term - distance_term + heading_term + unknown_term
+ *             + same_goal_bonus - visit_term - narrow_penalty
+ *
+ * where:
+ *   size_term      = frontier_size_weight * log(1 + number_of_cells)
+ *   distance_term  = frontier_distance_weight * d
+ *   heading_term   = frontier_heading_weight *
+ *                    (1 - clamp(abs(heading_error_deg) / 140, 0, 1))
+ *   unknown_term   = frontier_unknown_density_weight * unknown_density_score
+ *   visit_term     = frontier_visit_penalty_weight * visit_penalty
+ *   narrow_penalty = frontier_narrow_penalty_weight *
+ *                    (1 - clamp(width_score, 0, 1))
+ *
+ * Source declaration:
+ * The exact weighted score is project-specific and was developed with
+ * ChatGPT assistance after testing what was suitable for online JetRacer exploration.
+ *
+ * The general use of a heuristic cost/evaluation function is related to graph
+ * search and A* search in Modern Robotics, where nodes are ordered using
+ * estimated total cost:
+ *
+ *     est_total_cost[nbr] = past_cost[nbr] + heuristic_cost_to_go(nbr)
+ *
+ * Source: Modern Robotics, Chapter 10, Algorithm 10.1,
+ * page 369.
+ *
+ * The grid-based planning context is related to Chapter 10, Section 10.4
+ * "Grid Methods", pages 371-373. Figure 10.10, page 373, shows 4-connected
+ * and 8-connected grid neighbourhoods and Euclidean distance between grid
+ * points. Figure 10.11, page 373, shows breadth-first wavefront expansion on
+ * a two-dimensional grid.
+ *
+ * The heading calculation uses atan2 to obtain the direction from the robot
+ * to the candidate goal. This is consistent with angle extraction using atan2
+ * in Modern Robotics.
+ * Source: Modern Robotics, Appendix B.1.1, Eq. (B.4),
+ * page 579.
+ *
+ * The dynamic obstacle suppression check using headingScanClearanceDeg()
+ * is a project-specific local safety heuristic, not a Modern Robotics equation.
+ */
     bool selectBestFrontierGoal(double& goal_x, double& goal_y, double& heading_deg_out)
     {
         if (!has_map_ || !has_pose_in_map_)
@@ -987,6 +1281,49 @@ private:
         return true;
     }
 
+
+/*
+ * computeLocalWaypoint() chooses a reachable intermediate waypoint between the
+ * robot and the selected frontier goal.
+ *
+ * Project-specific waypoint rule:
+ *
+ *     dx = goal_x - robot_x
+ *     dy = goal_y - robot_y
+ *     d  = sqrt(dx^2 + dy^2)
+ *
+ *     u = (dx, dy) / d
+ *
+ *     p_step = p_robot + step_distance * u
+ *
+ * The function keeps the furthest sampled point that is inside the map, free,
+ * and line-of-sight traversable.
+ *
+ * Source declaration:
+ * This exact waypoint stepping rule is project-specific and was implemented
+ * with ChatGPT assistance, then adapted for this project.
+ *
+ * The general motion-planning context is collision-free motion through a
+ * cluttered space.
+ * Source: Modern Robotics, Chapter 10, page 355.
+ *
+ * The grid-based validation is related to grid methods.
+ * Source:Modern Robotics, Chapter 10, Section 10.4
+ * "Grid Methods", pages 371-373.
+ *
+ * Figure reference:
+ * Modern Robotics, Figure 10.10, page 373, shows grid neighbourhoods and
+ * Euclidean distance between grid points. This is related to the use of
+ * hypot(dx,dy) and grid-cell traversability checks.
+ *
+ * The sampled waypoint line is related to straight-line paths.
+ * Source: Modern Robotics, Chapter 9, Section 9.2.1
+ * "Straight-Line Paths", page 328.
+ *
+ * The final heading angle is computed using atan2, consistent with angle
+ * extraction using atan2 in Modern Robotics.
+ * Source:Modern Robotics, Appendix B.1.1, Eq. (B.4), page 579.
+ */
     bool computeLocalWaypoint(double goal_x, double goal_y,
                               double& wx_out, double& wy_out, double& heading_deg_out)
     {
@@ -1043,6 +1380,31 @@ private:
         return true;
     }
 
+
+/*
+ * Goal-progress tracking stores the initial distance to the active frontier goal
+ * and later checks whether the robot has reduced this distance enough.
+ *
+ * Project-specific progress rule:
+ *
+ *     d_start = sqrt((goal_x - robot_x_start)^2 + (goal_y - robot_y_start)^2)
+ *
+ *     d_now = sqrt((goal_x - robot_x_now)^2 + (goal_y - robot_y_now)^2)
+ *
+ *     progress = d_start - d_now
+ *
+ *     failed = progress < progress_min after timeout
+ *
+ * Source declaration:
+ * This exact timeout/progress-failure rule is project-specific and was
+ * implemented with ChatGPT assistance, then adapted for this project.
+ *
+ * Figure reference:
+ * Modern Robotics, Figure 10.10(b), page 373, shows Euclidean distance on grid points. 
+ * This is related to the distance checks used here with hypot().
+ *
+ * Modern Robotics does not contain this exact goal-progress failure equation.
+ */
     void startGoalProgressTracking(double gx, double gy)
     {
         goal_progress_tracking_ = true;
@@ -1066,6 +1428,29 @@ private:
         return progress < goal_progress_min_dist_m_;
     }
 
+
+
+/*
+ * handleGoalFailureIfNeeded() checks whether the active goal has been reached
+ * or whether progress toward the goal has failed.
+ *
+ * Project-specific logic:
+ *
+ *     reached = distance(robot, goal) <= goal_reach_dist
+ *
+ *     if progress fails repeatedly:
+ *         add goal to temporary blacklist
+ *
+ * Source declaration:
+ * This exact goal-failure and blacklist logic is project-specific and was
+ * implemented with ChatGPT assistance, then adapted for this project.
+ *
+ * Figure reference:
+ * Modern Robotics, Figure 10.10(b), page 373, is related to the Euclidean
+ * distance checks used for goal reach and progress evaluation.
+ *
+ * Modern Robotics does not contain this exact goal-failure state logic.
+ */
     void handleGoalFailureIfNeeded()
     {
         if (!last_goal_valid_ || !has_pose_in_map_)
@@ -1106,6 +1491,45 @@ private:
         }
     }
 
+
+
+/*
+ * computeBaseForwardSpeed() computes a local forward speed from front obstacle
+ * distance, corridor state, and heading error.
+ *
+ * Project-specific speed rule:
+ *
+ *     if front distance is blocked:
+ *         v = 0
+ *
+ *     if front distance is clear:
+ *         v = v_max
+ *
+ *     otherwise:
+ *         v is linearly interpolated between speed limits using a clamped ratio
+ *
+ * Heading scaling:
+ *
+ *     heading_penalty = clamp(abs(heading_deg) / heading_limit, 0, 1)
+ *
+ *     speed_scale = clamp(1 - 0.40 * heading_penalty, 0.60, 1.0)
+ *
+ *     v_final = clamp(v_base * speed_scale, v_min, v_max)
+ *
+ * Source declaration:
+ * This exact speed-selection function is project-specific and was implemented
+ * with ChatGPT assistance, then adapted for this project.
+ *
+ * The general safety context is collision-free motion planning in cluttered
+ * environments.
+ * Source: Modern Robotics, Chapter 10, page 355.
+ *
+ * The function uses distance-to-obstacle style reasoning. Modern Robotics
+ * discusses distance to obstacles in Chapter 10, Section 10.2.2,
+ * pages 364-366.
+ *
+ * Modern Robotics does not contain this exact piecewise speed-control equation.
+ */
     double computeBaseForwardSpeed(const SectorInfo& s, double heading_deg) const
     {
         double base_speed;
@@ -1118,14 +1542,12 @@ private:
             base_speed = forward_speed_max_;
         else if (s.front <= front_caution_dist_)
         {
-            const double ratio = clamp((s.front - front_block_dist_) /
-                                       std::max(0.001, front_caution_dist_ - front_block_dist_), 0.0, 1.0);
+            const double ratio = clamp((s.front - front_block_dist_) / std::max(0.001, front_caution_dist_ - front_block_dist_), 0.0, 1.0);
             base_speed = forward_speed_min_ + ratio * (forward_speed_recovery_ - forward_speed_min_);
         }
         else
         {
-            const double ratio = clamp((s.front - front_caution_dist_) /
-                                       std::max(0.001, front_clear_dist_ - front_caution_dist_), 0.0, 1.0);
+            const double ratio = clamp((s.front - front_caution_dist_) / std::max(0.001, front_clear_dist_ - front_caution_dist_), 0.0, 1.0);
             base_speed = forward_speed_recovery_ + ratio * (forward_speed_max_ - forward_speed_recovery_);
         }
 
@@ -1133,8 +1555,7 @@ private:
         {
             if (std::isfinite(s.front) && s.front < corridor_front_slow_dist_)
             {
-                const double ratio = clamp((s.front - front_block_dist_) /
-                                           std::max(0.001, corridor_front_slow_dist_ - front_block_dist_), 0.0, 1.0);
+                const double ratio = clamp((s.front - front_block_dist_) / std::max(0.001, corridor_front_slow_dist_ - front_block_dist_), 0.0, 1.0);
                 base_speed = forward_speed_min_ + ratio * (corridor_speed_max_ - forward_speed_min_);
             }
             else
@@ -1148,6 +1569,27 @@ private:
         return clamp(base_speed * speed_scale, forward_speed_min_, forward_speed_max_);
     }
 
+
+/*
+ * trajectoryEndpointTraversable() simulates a short constant-velocity command.
+ *
+ * Motion update used in the loop:
+ *
+ *     yaw_{k+1} = yaw_k + w * dt
+ *     x_{k+1} = x_k + v * cos(yaw_{k+1}) * dt
+ *     y_{k+1} = y_k + v * sin(yaw_{k+1}) * dt
+ *
+ * Each simulated pose is converted to an occupancy-grid cell and checked for
+ * traversability.
+ *
+ * Source declaration:
+ * The wheeled-mobile-robot context is related to Modern
+ * Robotics, Chapter 13, page 515, Equations (13.1)-(13.2), where planar chassis
+ * velocity is represented using orientation and planar velocity components.
+ *
+ * The exact discrete simulation and collision-checking implementation here is
+ * project-specific and was developed with ChatGPT assistance.
+ */
     bool trajectoryEndpointTraversable(double x0, double y0, double yaw0,
                                       double v, double w,
                                       double& xf, double& yf, double& yawf) const
@@ -1176,6 +1618,35 @@ private:
         return true;
     }
 
+
+
+
+
+/*
+ * chooseBestTrajectory() selects a short-horizon velocity command by scoring
+ * candidate (v,w) pairs.
+ * where:
+ *   g = final heading alignment to waypoint,
+ *   p = progress toward waypoint,
+ *   c = laser clearance,
+ *   s = smoothness term,
+ *   b_corridor = corridor-centering bonus,
+ *   v_visit = visit-memory penalty,
+ *   p_reverse  = reverse-motion penalty.
+ *
+ * Source declaration:
+ * The general idea of choosing an action using an evaluation/cost function is
+ * related to Russell and Norvig, Artificial Intelligence: A Modern Approach,
+ * 3rd ed., Chapter 3, Section 3.5, page 92.
+ *
+ * The wheeled-robot velocity context is related to Modern
+ * Robotics, Chapter 13, pages 515-517, which discusses planar wheeled mobile
+ * robot motion and velocity representation.
+ *
+ * This is NOT a full Dynamic Window Approach implementation and is not copied from a textbook. 
+ * The exact scoring function was developed with ChatGPT
+ * assistance and tuned by me on the JetRacer.
+ */
     TrajectoryCandidate chooseBestTrajectory(const SectorInfo& s,
                                              double waypoint_x, double waypoint_y,
                                              double center_error)
@@ -1317,6 +1788,28 @@ private:
         }
     }
 
+
+/*
+ * beginRecovery() selects a recovery state when the robot is blocked or stuck.
+ *
+ * Operations:
+ *   1. Check rear safety.
+ *   2. Avoid reverse motion if the rear sector is blocked.
+ *   3. In corridors, prefer turning over reversing.
+ *   4. If one side has more free space, turn toward that side.
+ *   5. Reverse only if cooldown and rear clearance allow it.
+ *   6. Use escape turning as a final recovery behaviour.
+ *
+ * Source declaration:
+ * This is a project-specific reactive recovery heuristic. It is related to the
+ * general mobile-robot integration problem described by Kudriashov et al.,
+ * Chapter 1, pages 1-2, where autonomous robots require mapping, localization,
+ * motion control, and exploration to work together.
+ *
+ * The exact recovery arbitration logic was developed with ChatGPT assistance
+ * after physical testing showed that the JetRacer could get stuck near walls,
+ * corners, and narrow passages.
+ */
     void beginRecovery(const SectorInfo& s, bool emergency)
     {
         recovery_count_++;
@@ -1441,6 +1934,41 @@ private:
         return out;
     }
 
+
+
+/*
+ * timerCallback() is the main percept-action loop of the exploration agent.
+ *
+ * Agent interpretation:
+ *   - Percepts: /scan, /odom, /map, TF map->base_footprint, /exploration_done.
+ *   - Action:  /cmd_vel.
+ *
+ * This matches Russell and Norvig, Artificial Intelligence: A Modern Approach,
+ * 3rd ed., Chapter 2, Section 2.1, pages 34-35, Figure 2.1, where an agent
+ * receives percepts through sensors and acts through actuators.
+ *
+ * Main operations per cycle:
+ *   1. Stop if /exploration_done is true.
+ *   2. Stop if no laser scan is available.
+ *   3. Update robot pose in the map frame using TF.
+ *   4. Update visit memory.
+ *   5. Check whether the current goal has failed.
+ *   6. Read laser sector distances.
+ *   7. Detect corridor conditions.
+ *   8. Execute active recovery state if recovering.
+ *   9. Trigger recovery if blocked or stuck.
+ *   10. Select a frontier goal if needed.
+ *   11. Compute a local waypoint.
+ *   12. Choose the best short-horizon trajectory.
+ *   13. Apply corridor correction and safety gates.
+ *   14. Publish /cmd_vel.
+ *
+ * Source declaration:
+ * The agent/percept-action structure is from AIMA Chapter 2, pages 34-35.
+ * The online unknown-environment idea is related to AIMA Chapter 4, Section 4.5.
+ * The exact ROS control-loop implementation was structured with ChatGPT
+ * assistance and adapted/tested by me.
+ */
     void timerCallback(const ros::TimerEvent&)
     {
         if (exploration_done_)
@@ -1555,7 +2083,8 @@ private:
             cmd_pub_.publish(cmd);
             return;
         }
-
+        
+        // Equation (13.15), Page 526, MR pre-print 2019
         cmd.linear.x = best.v;
         cmd.angular.z = best.w;
 
