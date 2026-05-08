@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import os
 import yaml
+import numpy as np
 import rospy
 from geometry_msgs.msg import PoseStamped
 import tf.transformations as tft
@@ -47,9 +48,18 @@ class WaypointSaver(object):
             marker_id = int(msg.header.frame_id)
             map_x = msg.pose.position.x
             map_y = msg.pose.position.y
-            # Convert Quaternion to Euler to get Yaw
+            
+            # ArUco orientation is in OpenCV coordinates (Z is forward).
+            # When published in ROS, the marker's "forward" is its Z-axis.
+            # We extract the rotation matrix to find where that Z-axis points in the map.
             q = [msg.pose.orientation.x, msg.pose.orientation.y, msg.pose.orientation.z, msg.pose.orientation.w]
-            _, _, yaw = tft.euler_from_quaternion(q) #_ to ignore output
+            matrix = tft.quaternion_matrix(q)
+            
+            # The 3rd column (index 2) of the rotation matrix is the Z-axis vector [r13, r23, r33]
+            # Yaw is the angle of this vector in the Map's X-Y plane.
+            z_axis_x = matrix[0, 2]
+            z_axis_y = matrix[1, 2]
+            yaw = np.arctan2(z_axis_y, z_axis_x)
 
             self.save_to_yaml(marker_id, map_x, map_y, yaw)
 

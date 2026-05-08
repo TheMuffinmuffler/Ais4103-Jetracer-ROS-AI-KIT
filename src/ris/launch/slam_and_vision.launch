@@ -65,7 +65,7 @@
     </node>
     <node pkg="ris" type="aruco_processor.py" name="aruco_processor" output="screen">
         <param name="camera_name" value="/csi_cam_0"/>
-        <param name="marker_size" value="0.038"/>
+        <param name="marker_size" value="0.0345"/>
         <param name="yaml_path" value="$(arg aruco_yaml)"/>
         <param name="base_frame" value="base_footprint"/>
         <param name="enable_mapping" value="true"/>

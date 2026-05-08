@@ -2,7 +2,7 @@
 <launch>
     <node name="aruco_processor" pkg="ris" type="aruco_processor.py" output="screen">
         <param name="camera_name" value="/csi_cam_0" />
-        <param name="marker_size" value="0.0365" />
+        <param name="marker_size" value="0.0345" />
         <param name="enable_mapping" value="true" />
         <param name="enable_localization" value="false" />
         <param name="process_every_n_frames" value="2" />
