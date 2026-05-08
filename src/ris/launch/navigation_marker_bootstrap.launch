@@ -1,10 +1,40 @@
 <?xml version="1.0"?>
+
+
+<!--
+  This launch file starts the full marker-based navigation setup used after mapping. It loads the saved map, starts AMCL localization, starts move_base, enables ArUco-based localization support, and starts marker_goal_navigator.py so that a marker ID published on /target_marker_id can be converted into a move_base navigation goal.
+
+  My contribution:
+  I assembled and adapted this launch file to integrate the localization and
+  navigation components for the JetRacer project.
+
+  AI assistance declaration:
+  ChatGPT was used as support for organizing the launch structure and checking
+  how the ROS nodes, parameters, map file, ArUco waypoint YAML, AMCL, move_base,
+  and marker-goal navigation should be connected.
+
+  External ROS components:
+  - map_server is a standard ROS map-loading node.
+  - amcl is a standard ROS localization node.
+  - move_base is a standard ROS navigation node.
+  - tf/static_transform_publisher is a standard ROS TF utility.
+  - teb_local_planner, costmap configuration, and AMCL configuration are loaded
+    as external ROS navigation configuration components.
+
+  Project-specific components:
+  - aruco_processor.py
+  - marker_goal_navigator.py
+  - saved map YAML
+  - aruco_waypoints.yaml
+-->
+
+
 <launch>
     <arg name="map_file" default="/home/jetson/catkin_ws/src/Ais4103-Jetracer-ROS-AI-KIT/src/ris/map/mymap.yaml"/>
     <arg name="aruco_yaml" default="/home/jetson/catkin_ws/src/Ais4103-Jetracer-ROS-AI-KIT/src/ris/map/aruco_waypoints.yaml"/>
     <param name="use_sim_time" value="false"/>
     <node pkg="tf" type="static_transform_publisher" name="base_footprint_to_camera"
-          args="0.185 0.0 0.111 0.0 0.0 0.0 base_footprint csi_cam_0_link 50" />
+          args="0.190 0.0 0.111 0.0 0.0 0.0 base_footprint csi_cam_0_link 20" />
     <node name="map_server"
           pkg="map_server"
           type="map_server"
@@ -29,7 +59,7 @@
           name="aruco_processor"
           output="screen">
         <param name="camera_name" value="/csi_cam_0"/>
-        <param name="marker_size" value="0.0365"/>
+        <param name="marker_size" value="0.038"/>
         <param name="yaml_path" value="$(arg aruco_yaml)"/>
         <param name="base_frame" value="base_footprint"/>
         <param name="enable_mapping" value="false"/>
