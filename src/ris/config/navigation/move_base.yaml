@@ -1,3 +1,26 @@
+# Configuration origin / reuse declaration:
+# This file is based on the JetRacer ROS navigation configuration from the
+# project repository. I reused the original structure because it already matched
+# the JetRacer ROS navigation stack, then modified selected parameters to fit my
+# own SLAM/navigation project, map setup, robot behaviour, safety limits, and
+# planner choices.
+#
+# ChatGPT was used as programming/configuration assistance for understanding the
+# role of the parameters, comparing alternatives, and cleaning the YAML structure.
+# The final parameter choices, integration, testing, and validation were done by
+# me on the JetRacer setup.
+#
+# File-specific changes:
+# - Replaced the standard global_planner with my custom ris/AStarGlobalPlanner.
+# - Kept teb_local_planner as the local planner.
+# - Increased planner/controller patience values for more stable behaviour in
+#   indoor testing.
+# - Disabled clearing rotation because the JetRacer is car-like and should not
+#   rotate in place like a differential-drive robot.
+# - Added parameters for the custom A* planner, including unknown-space handling,
+#   path simplification, obstacle threshold, tolerance, and goal search radius.
+
+
 base_global_planner: "ris/AStarGlobalPlanner"
 base_local_planner: "teb_local_planner/TebLocalPlannerROS"
 
@@ -20,3 +43,5 @@ ris:
   default_tolerance: 0.20
   neutral_cost_scale: 0.02
   goal_search_radius_cells: 8
+
+
