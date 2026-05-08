@@ -1,4 +1,23 @@
 <?xml version="1.0"?>
+
+
+
+<!--
+  This launch file starts the autonomous mapping workflow by including  youssef_slam.launch and launching the auto_explorer node with the tuned exploration parameters.
+
+  I assembled and tuned this launch file so that the robot could map autonomously using gmapping, auto_explorer, and the youssef_slam automatic map-saving node.
+
+  ChatGPT was used as support for organizing the launch parameters and checking how auto_explorer should connect to /scan, /odom, /map, /cmd_vel, TF frames, and /exploration_done.
+
+  Project-specific components:
+  - youssef_slam.launch starts the SLAM/map-saving workflow.
+  - auto_explorer drives the robot autonomously during mapping.
+
+  This file does not implement an algorithm. It records the runtime parameters
+  used for autonomous exploration and mapping.
+-->
+
+
 <launch>
     <include file="$(find ris)/launch/youssef_slam.launch" />
     <node pkg="ris" type="auto_explorer" name="auto_explorer" output="screen">
