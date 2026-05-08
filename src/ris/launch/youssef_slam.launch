@@ -1,25 +1,52 @@
 <?xml version="1.0"?>
+
+<!--
+  File: youssef_slam.launch
+
+Purpose:
+  Launches the JetRacer SLAM workflow using the external gmapping launch file from the jetracer package and starts the project-specific youssef_slam supervisor node.
+
+Reuse / AI assistance:
+  The included gmapping launch file is external project/ROS package material. The youssef_slam node and its parameters are project-specific. ChatGPT was used as programming support for organizing the supervisor-node workflow and parameter structure. The parameter values were adapted and tested during the project.
+-->
+
 <launch>
+  <!--Use real robot time, not simulation time.-->
   <param name="use_sim_time" value="false"/>
 
+  <!--Starts the existing gmapping setup from the jetracer package.
+    This performs the actual SLAM mapping.-->
   <include file="$(find jetracer)/launch/gmapping.launch" />
 
+  <!-- Starts the project-specific supervisor node.
+    This node monitors /map, detects when the map is stable enough,
+    saves the map, copies it to the robot, publishes /exploration_done,
+    and stops gmapping. -->
   <node pkg="ris" type="youssef_slam" name="youssef_slam" output="screen">
+
+    <!-- Topic used by gmapping to publish the occupancy grid map. -->
     <param name="map_topic" value="/map"/>
+
+    <!-- Local map save location and output map name. -->
     <param name="laptop_map_dir" value="/home/jetson/maps"/>
     <param name="laptop_map_name" value="mymap"/>
+
+    <!--Robot-side target location for copied map files. -->
     <param name="robot_map_dir" value="/home/jetson/maps"/>
     <param name="robot_user" value="jetson"/>
     <param name="robot_ip" value="192.168.0.144"/>
+
+    <!--Map-stability checking parameters.-->
     <param name="check_period_sec" value="2.0"/>
     <param name="changed_cells_threshold" value="20"/>
     <param name="stable_seconds_before_save" value="12.0"/>
     <param name="min_exploration_time_sec" value="90.0"/>
+
+    <!--Node and topic names used during the completion sequence-->
     <param name="gmapping_node_name" value="/slam_gmapping"/>
     <param name="stop_robot_before_save" value="true"/>
     <param name="exploration_done_topic" value="/exploration_done"/>
     <param name="publish_exploration_done" value="true"/>
-
 
   </node>
 </launch>
