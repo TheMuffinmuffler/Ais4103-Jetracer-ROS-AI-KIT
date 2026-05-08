@@ -1,3 +1,22 @@
+# Configuration origin / reuse declaration:
+# This AMCL configuration is based on the JetRacer ROS AMCL launch configuration.
+# I converted the relevant AMCL parameters from launch-file format into YAML and
+# tuned selected values for my navigation setup.
+#
+# Main changes from the original JetRacer configuration:
+# - Reduced particles from 2000-5000 to 500-1500.
+# - Changed odometry noise parameters from the original values to:
+#   odom_alpha1/2 = 0.25, odom_alpha3/4 = 0.40, odom_alpha5 = 0.10.
+# - Reduced laser_max_beams from 60 to 30.
+# - Changed laser weights to make laser hits more dominant:
+#   laser_z_hit = 0.80 and laser_z_rand = 0.05.
+# - Reduced update thresholds to update more often:
+#   update_min_d = 0.10 and update_min_a = 0.15.
+# - Increased transform_tolerance to 2.0.
+#
+# ChatGPT was used as configuration assistance for understanding AMCL parameters
+# and cleaning the YAML structure. The final tuning and integration were done by me on the JetRacer setup.
+
 use_map_topic: true
 
 odom_model_type: "diff"
