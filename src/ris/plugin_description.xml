@@ -1,9 +1,24 @@
+This XML file does not appear to have any style information associated with it. The document tree is shown below.
+<!-- 
+  Plugin declaration for the custom RIS A* global planner.
+
+  This file registers ris_navigation::AStarGlobalPlanner as a ROS navigation
+  plugin implementing nav_core::BaseGlobalPlanner, so move_base can load it
+  through pluginlib using the name:
+
+      ris/AStarGlobalPlanner
+
+  Reuse / AI assistance declaration:
+  This plugin file was written as part of adapting the A* planner into the ROS
+  move_base navigation stack. ChatGPT was used as programming assistance for
+  understanding the pluginlib XML format, the class-name/type/base-class fields,
+  and how the plugin is connected to move_base.
+
+  The actual A* planning logic is not implemented in this XML file. It is
+  implemented in astar_global_planner.cpp.
+ -->
 <library path="lib/libris_astar_global_planner">
-    <class name="ris/AStarGlobalPlanner"
-           type="ris_navigation::AStarGlobalPlanner"
-           base_class_type="nav_core::BaseGlobalPlanner">
-        <description>
-            Custom A* global planner for RIS navigation.
-        </description>
-    </class>
+<class name="ris/AStarGlobalPlanner" type="ris_navigation::AStarGlobalPlanner" base_class_type="nav_core::BaseGlobalPlanner">
+<description> Custom A* global planner for RIS navigation. </description>
+</class>
 </library>
