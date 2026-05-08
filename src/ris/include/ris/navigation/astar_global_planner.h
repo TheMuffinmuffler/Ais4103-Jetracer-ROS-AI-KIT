@@ -1,5 +1,31 @@
 #pragma once
 
+
+
+/*
+ * Header file for my custom ROS move_base global planner plugin:
+ * ris_navigation::AStarGlobalPlanner.
+ *
+ * Reuse / collaboration declaration:
+ * This plugin interface supports astar_global_planner.cpp, which I adapted
+ * from an A* grid-planning prototype written by my project teammate Khadija Rauf.
+ * Her original code was a standalone OccupancyGrid planner for RViz testing.
+ * I adapted the planner into a nav_core::BaseGlobalPlanner plugin for move_base.
+ *
+ * ChatGPT was used as programming assistance for understanding and structuring
+ * the nav_core::BaseGlobalPlanner interface, plugin class declaration, costmap
+ * integration, and helper-function organization.
+ *
+ * External libraries:
+ * This file uses standard ROS navigation interfaces:
+ * nav_core::BaseGlobalPlanner, costmap_2d::Costmap2DROS,
+ * geometry_msgs::PoseStamped, and nav_msgs::Path.
+ *
+ * This header does not contain the A* implementation itself. The algorithmic
+ * logic is implemented in astar_global_planner.cpp.
+ */
+
+
 #include <ros/ros.h>
 #include <nav_core/base_global_planner.h>
 #include <costmap_2d/costmap_2d_ros.h>
@@ -17,8 +43,7 @@ namespace ris_navigation
         AStarGlobalPlanner(std::string name, costmap_2d::Costmap2DROS* costmap_ros);
 
         void initialize(std::string name, costmap_2d::Costmap2DROS* costmap_ros) override;
-        bool makePlan(const geometry_msgs::PoseStamped& start,
-                      const geometry_msgs::PoseStamped& goal,
+        bool makePlan(const geometry_msgs::PoseStamped& start, const geometry_msgs::PoseStamped& goal,
                       std::vector<geometry_msgs::PoseStamped>& plan) override;
 
     private:
@@ -26,9 +51,7 @@ namespace ris_navigation
         costmap_2d::Costmap2DROS* costmap_ros_;
         costmap_2d::Costmap2D* costmap_;
         ros::Publisher plan_pub_;
-
         std::string global_frame_;
-
         bool allow_unknown_;
         bool simplify_path_;
         int obstacle_cost_threshold_;
@@ -46,9 +69,7 @@ namespace ris_navigation
         bool isCellTraversable(unsigned int mx, unsigned int my) const;
         bool lineOfSight(unsigned int x0, unsigned int y0, unsigned int x1, unsigned int y1) const;
         void simplifyPlan(std::vector<geometry_msgs::PoseStamped>& plan) const;
-        bool findNearestTraversableCell(unsigned int start_mx, unsigned int start_my,
-                                        unsigned int& out_mx, unsigned int& out_my) const;
-
+        bool findNearestTraversableCell(unsigned int start_mx, unsigned int start_my, unsigned int& out_mx, unsigned int& out_my) const;
         double heuristic(unsigned int x0, unsigned int y0, unsigned int x1, unsigned int y1) const;
         void publishPlan(const std::vector<geometry_msgs::PoseStamped>& plan) const;
     };
