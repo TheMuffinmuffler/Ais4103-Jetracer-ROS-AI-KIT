@@ -1,3 +1,25 @@
+# Configuration origin / reuse declaration:
+# This file is based on the JetRacer ROS navigation configuration from the
+# project repository. I reused the original structure because it already matched
+# the JetRacer ROS navigation stack, then modified selected parameters to fit my
+# own SLAM/navigation project, map setup, robot behaviour, safety limits, and
+# planner choices.
+#
+# ChatGPT was used as programming/configuration assistance for understanding the
+# role of the parameters, comparing alternatives, and cleaning the YAML structure.
+# The final parameter choices, integration, testing, and validation were done by
+# me on the JetRacer setup.
+#
+# File-specific changes:
+# - Changed the local costmap frame to odom for local rolling-window navigation.
+# - Used a rolling 4 m x 4 m local window with 0.05 m resolution for finer local
+#   obstacle handling.
+# - Removed the static layer from the local costmap and kept obstacle/inflation
+#   layers for reactive local planning.
+# - Increased transform_tolerance to reduce TF timing failures during navigation.
+
+
+
 local_costmap:
   global_frame: odom
   robot_base_frame: base_footprint
@@ -13,3 +35,4 @@ local_costmap:
   plugins:
     - {name: obstacle_layer, type: "costmap_2d::ObstacleLayer"}
     - {name: inflation_layer,type: "costmap_2d::InflationLayer"}
+
