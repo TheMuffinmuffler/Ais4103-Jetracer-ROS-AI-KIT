@@ -1,3 +1,26 @@
+/*
+ * File: youssef_slam.cpp
+ * Node: youssef_slam
+ *
+ * This is a project-specific ROS supervisor node for the JetRacer SLAM workflow.
+ * It does not implement the SLAM algorithm. Mapping is performed by the external
+ * ROS package slam_gmapping, and the final map is saved using map_server/map_saver.
+ *
+ * The node monitors the OccupancyGrid published on /map, compares consecutive
+ * maps to estimate whether the map is still changing, and automatically runs the
+ * completion sequence when the map has been stable for a defined time.
+ *
+ * Reuse / AI assistance:
+ * ChatGPT was used as programming support for structuring this ROS C++ node,
+ * formulating the map-change checking heuristic, implementing timer-based logic,
+ * and debugging the save/copy/stop sequence. The workflow, parameter choices,
+ * launch integration, and validation were done by me during the project and
+ * tested on the JetRacer platform.
+ *
+ * The map-stability heuristic and AI assistance are described in the report
+ * section "Use of AI tools for SLAM".
+ */
+ 
 #include <ros/ros.h>
 #include <nav_msgs/OccupancyGrid.h>
 #include <geometry_msgs/Twist.h>
@@ -59,6 +82,23 @@ private:
         latest_map_ = *msg;
         has_map_ = true;
     }
+
+
+
+/*
+ * Counts how many cells changed between two consecutive OccupancyGrid maps.
+ *
+ * Stability metric:
+ *
+ *     C = sum I(M_t[i] != M_{t-1}[i])
+ *
+ * If the maps have different sizes, a large value is returned so the map is treated as unstable.
+ *
+ * Source declaration:
+ * This exact equation is not from Modern Robotics and not from Kudriashov et al.
+ * It was generated with ChatGPT assistance after I defined the problem: detecting
+ * when the ROS OccupancyGrid had stopped changing significantly during gmapping.
+ */
 
     int countChangedCells(const nav_msgs::OccupancyGrid& a, const nav_msgs::OccupancyGrid& b)
     {
@@ -183,6 +223,17 @@ private:
         return (ros::Time::now() - start_time_).toSec() >= min_exploration_time_sec_;
     }
 
+
+
+
+
+/*
+ * Runs the automatic completion sequence after the map is considered stable:
+ * publish /exploration_done, stop the robot, save the map, copy the map files
+ * to the robot, stop slam_gmapping, and shut down this node.
+ *
+ * ChatGPT was used as programming support for organizing this sequence and for the shell-command implementation.
+ */
     void finishSequence()
     {
         if (save_started_ || finished_)
@@ -215,6 +266,17 @@ private:
         ros::shutdown();
     }
 
+
+/*
+ * Periodically checks whether the map is stable enough to save.
+ *
+ * The stable-time counter increases only when the number of changed cells is
+ * below changed_cells_threshold_. If the map changes too much, the counter is
+ * reset. The map is saved only after both conditions are satisfied:
+ *
+ *   elapsed_time >= min_exploration_time_sec_
+ *   stable_time_acc_ >= stable_seconds_before_save_
+ */
     void timerCallback(const ros::TimerEvent&)
     {
         if (!has_map_ || finished_)
