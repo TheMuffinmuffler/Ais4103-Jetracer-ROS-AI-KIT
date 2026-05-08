@@ -1,3 +1,31 @@
+# Configuration origin / reuse declaration:
+# This file is based on the JetRacer ROS navigation configuration from the
+# project repository. I reused the original structure because it already matched
+# the JetRacer ROS navigation stack, then modified selected parameters to fit my
+# own SLAM/navigation project, map setup, robot behaviour, safety limits, and
+# planner choices.
+#
+# ChatGPT was used as programming/configuration assistance for understanding the
+# role of the parameters, comparing alternatives, and cleaning the YAML structure.
+# The final parameter choices, integration, testing, and validation were done by
+# me on the JetRacer setup.
+#
+# File-specific changes:
+# - Reduced maximum forward and backward speeds for safer indoor testing.
+# - Reduced angular velocity and acceleration limits to make the car-like motion
+#   smoother and more realistic.
+# - Kept the car-like constraints using min_turning_radius and wheelbase.
+# - Disabled backward initialization to make the robot prefer forward driving.
+# - Reduced local-plan lookahead and sample count to make planning lighter.
+# - Tuned obstacle distance, inflation distance, and obstacle weights for the
+#   small JetRacer footprint.
+# - Disabled homotopy-class planning to reduce complexity and make behaviour
+#   more predictable during project testing.
+# - Tuned recovery and oscillation parameters for shorter recovery windows.
+
+# Related theoretical context:
+#Modern Robotics, Chapter 13, Section 13.3, "Nonholonomic Wheeled Mobile Robots", pages 522-530.
+
 TebLocalPlannerROS:
   odom_topic: odom
 
