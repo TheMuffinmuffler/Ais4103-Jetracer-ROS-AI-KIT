@@ -1,3 +1,54 @@
+
+/*
+ * This file implements a custom A* global planner plugin for ROS move_base.
+ * The planner receives start and goal poses from move_base, searches the costmap,
+ * reconstructs a path, optionally simplifies it, assigns orientations, publishes
+ * the resulting path, and returns it to move_base.
+ *
+ * Reuse / collaboration declaration:
+ * This implementation is adapted from an A* grid-planning prototype written by
+ * my project teammate Khadija Rauf. Her original code was a standalone ROS node
+ * that subscribed to /map, used hard-coded start and goal coordinates, computed
+ * an A* path on an OccupancyGrid, and published the result as a nav_msgs/Path
+ * for RViz testing.
+ *
+ * My contribution:
+ * I adapted the prototype into a move_base-compatible global planner plugin by:
+ *   - implementing the nav_core::BaseGlobalPlanner interface,
+ *   - replacing hard-coded start/goal points with makePlan(start, goal, plan),
+ *   - using the move_base costmap_2d::Costmap2DROS instead of directly
+ *     subscribing to /map,
+ *   - adding pluginlib export support,
+ *   - adding parameter loading through ROS private parameters,
+ *   - using costmap costs and obstacle thresholds,
+ *   - finding a nearby traversable goal cell when the requested goal is invalid,
+ *   - publishing the generated path on ris_global_plan,
+ *   - assigning yaw orientation along the returned path,
+ *   - simplifying the path using line-of-sight checks.
+ *
+ * AI assistance declaration:
+ * ChatGPT was used as programming assistance to understand how to convert the
+ * standalone A* planner into a move_base global planner plugin, to structure the
+ * plugin interface, and to debug ROS/pluginlib/costmap integration details.
+ *
+ * Algorithmic reference:
+ * The planner uses the A* search principle learned in the Intelligent Machines
+ * course: nodes are expanded according to the lowest estimated total cost
+ *
+ *     f(n) = g(n) + h(n)
+ *
+ * where g(n) is the accumulated path cost from the start and h(n) is a heuristic
+ * estimate to the goal. The implemented heuristic is an octile/grid-distance
+ * heuristic for 8-connected grid motion:
+ *
+ *     h = 14 * min(dx, dy) + 10 * (dx + dy - 2 * min(dx, dy))
+ *
+ * Straight moves have cost 10 and diagonal moves have cost 14, approximating
+ * sqrt(2) * 10.
+ */
+ 
+ 
+
 #include <ris/navigation/astar_global_planner.h>
 #include <pluginlib/class_list_macros.h>
 #include <costmap_2d/cost_values.h>
@@ -99,6 +150,15 @@ double AStarGlobalPlanner::heuristic(unsigned int x0, unsigned int y0, unsigned 
   return 14.0 * diag + 10.0 * straight;
 }
 
+
+
+/*
+ * lineOfSight() checks whether a straight segment between two grid cells is free.
+ * It is used only for path simplification after A* has found a path.
+ *
+ * This is an adaptation added in my plugin version, with ChatGPT assistance, to
+ * reduce unnecessary intermediate waypoints before sending the plan to move_base.
+ */
 bool AStarGlobalPlanner::lineOfSight(unsigned int x0, unsigned int y0, unsigned int x1, unsigned int y1) const
 {
   int dx = std::abs(static_cast<int>(x1) - static_cast<int>(x0));
@@ -218,6 +278,21 @@ void AStarGlobalPlanner::publishPlan(const std::vector<geometry_msgs::PoseStampe
   plan_pub_.publish(path);
 }
 
+
+
+
+/*
+ * makePlan() is the required move_base global planner entry point.
+ *
+ * Difference from Khadija Rauf's original prototype:
+ * Her code used hard-coded world start/goal points inside a standalone ROS node.
+ * My adapted version receives start and goal from move_base, converts them to
+ * costmap cells, runs A*, reconstructs the path, converts it back to world
+ * coordinates, assigns orientations, publishes the path, and returns it to
+ * move_base.
+ *
+ * ChatGPT assisted with the move_base/pluginlib integration structure.
+ */
 bool AStarGlobalPlanner::makePlan(const geometry_msgs::PoseStamped& start,
                                   const geometry_msgs::PoseStamped& goal,
                                   std::vector<geometry_msgs::PoseStamped>& plan)
