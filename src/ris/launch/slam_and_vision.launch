@@ -1,4 +1,35 @@
 <?xml version="1.0"?>
+
+<!--
+  This launch file starts the complete autonomous mapping setup:
+  static TF transforms, gmapping, automatic map saving, ArUco marker mapping, waypoint saving, and autonomous exploration.
+
+  My contribution:
+  I assembled and adapted this launch file to run the SLAM, vision, waypoint,
+  and autonomous exploration components together on the JetRacer platform.
+
+  AI assistance declaration:
+  ChatGPT was used as support for organizing the launch structure, checking ROS
+  topic/frame connections, and tuning/exposing parameters for the autonomous
+  exploration and automatic map-saving workflow.
+
+  External ROS components:
+  - slam_gmapping performs the actual SLAM mapping.
+  - tf/static_transform_publisher provides fixed transforms.
+  - ROS topics /scan, /odom, /map, and /cmd_vel are standard ROS integration
+    interfaces.
+
+  Project-specific components:
+  - youssef_slam: monitors map stability, saves the final map, and publishes
+    /exploration_done.
+  - auto_explorer: drives the robot autonomously during mapping.
+  - aruco_processor.py: detects and stores ArUco marker positions.
+  - waypoint_saver.py: saves marker waypoints to YAML.
+
+  This launch file does not implement an algorithm itself. It documents the
+  reproducible runtime configuration used for autonomous SLAM and marker mapping.
+-->
+
 <launch>
     <arg name="output_dir" default="/home/jetson/catkin_ws/src/Ais4103-Jetracer-ROS-AI-KIT/src/ris/map" />
     <arg name="map_name" default="mymap" />
@@ -9,7 +40,7 @@
     <node pkg="tf" type="static_transform_publisher" name="ris_laser_fix"
           args="0 0.0 0.1 3.14 0.0 0.0 base_footprint laser_frame 50" />
     <node pkg="tf" type="static_transform_publisher" name="base_footprint_to_camera"
-          args="0.185 0.0 0.111 0.0 0.0 0.0 base_footprint csi_cam_0_link 20" />
+          args="0.190 0.0 0.111 0.0 0.0 0.0 base_footprint csi_cam_0_link 20" />
     <node pkg="gmapping" type="slam_gmapping" name="slam_gmapping" output="screen">
         <remap from="scan" to="scan"/>
         <param name="base_frame" value="base_footprint"/>
@@ -34,7 +65,7 @@
     </node>
     <node pkg="ris" type="aruco_processor.py" name="aruco_processor" output="screen">
         <param name="camera_name" value="/csi_cam_0"/>
-        <param name="marker_size" value="0.0365"/>
+        <param name="marker_size" value="0.038"/>
         <param name="yaml_path" value="$(arg aruco_yaml)"/>
         <param name="base_frame" value="base_footprint"/>
         <param name="enable_mapping" value="true"/>
