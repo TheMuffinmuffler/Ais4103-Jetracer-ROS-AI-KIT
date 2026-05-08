@@ -1,3 +1,22 @@
+# Configuration origin / reuse declaration:
+# This file is based on the JetRacer ROS navigation configuration from the
+# project repository. I reused the original structure because it already matched
+# the JetRacer ROS navigation stack, then modified selected parameters to fit my
+# own SLAM/navigation project, map setup, robot behaviour, safety limits, and
+# planner choices.
+#
+# ChatGPT was used as programming/configuration assistance for understanding the
+# role of the parameters, comparing alternatives, and cleaning the YAML structure.
+# The final parameter choices, integration, testing, and validation were done by
+# me on the JetRacer setup.
+#
+# File-specific changes:
+# - Kept the rectangular robot footprint used for the JetRacer-sized platform.
+# - Kept LaserScan as the obstacle source on /scan.
+# - Changed the inflation parameters to better fit the small indoor test map.
+# - Added inf_is_valid for LaserScan handling.
+# - Tuned obstacle and inflation behaviour for safer navigation in narrow areas.
+
 footprint: [[-0.10, -0.08], [0.10, -0.08], [0.10, 0.08], [-0.10, 0.08]]
 
 obstacle_layer:
